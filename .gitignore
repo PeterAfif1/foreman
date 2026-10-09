@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Real customer data never leaves this machine
+eval/data/real*.jsonl
+eval/data/private/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
