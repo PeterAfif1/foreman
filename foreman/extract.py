@@ -1,0 +1,89 @@
+"""Lead text in, validated Lead out."""
+
+import os
+import time
+from dataclasses import dataclass
+
+from dotenv import load_dotenv
+from openai import OpenAI
+
+from foreman.prompts import PROMPT_VERSION, SYSTEM_PROMPT
+from foreman.schema import Lead
+
+DEFAULT_MODEL = "gpt-4o-mini"
+
+# USD per 1M tokens (input, output). Hardcoded so cost per lead is reproducible
+# in old results even after list prices change.
+PRICING = {
+    "gpt-4o-mini": (0.15, 0.60),
+    "gpt-4o": (2.50, 10.00),
+}
+
+
+@dataclass
+class Extraction:
+    lead: Lead
+    model: str
+    prompt_version: str
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float | None
+    latency_ms: float
+
+
+class ExtractionError(Exception):
+    pass
+
+
+def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float | None:
+    if model not in PRICING:
+        return None
+    price_in, price_out = PRICING[model]
+    return (input_tokens * price_in + output_tokens * price_out) / 1_000_000
+
+
+def extract(text: str, model: str | None = None, client: OpenAI | None = None) -> Extraction:
+    load_dotenv()
+    model = model or os.getenv("FOREMAN_MODEL", DEFAULT_MODEL)
+    client = client or OpenAI()
+
+    start = time.perf_counter()
+    # Structured outputs: the API constrains decoding to the Lead JSON schema,
+    # so the response either parses into a Lead or comes back as a refusal.
+    completion = client.chat.completions.parse(
+        model=model,
+        temperature=0,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": text},
+        ],
+        response_format=Lead,
+    )
+    latency_ms = (time.perf_counter() - start) * 1000
+
+    message = completion.choices[0].message
+    if message.parsed is None:
+        raise ExtractionError(message.refusal or "model returned no parsed output")
+
+    usage = completion.usage
+    input_tokens = usage.prompt_tokens if usage else 0
+    output_tokens = usage.completion_tokens if usage else 0
+    return Extraction(
+        lead=message.parsed,
+        model=model,
+        prompt_version=PROMPT_VERSION,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cost_usd=estimate_cost(model, input_tokens, output_tokens),
+        latency_ms=latency_ms,
+    )
+
+
+if __name__ == "__main__":
+    import sys
+
+    result = extract(sys.stdin.read())
+    print(result.lead.model_dump_json(indent=2))
+    print(
+        f"\n{result.model} {result.prompt_version}  {result.latency_ms:.0f} ms  ${result.cost_usd}"
+    )
