@@ -61,7 +61,9 @@ Also tracked: per-field accuracy, omission rate, lead vs. spam precision and rec
 
 | Version | Change | Dataset | Accuracy | Hallucination rate | Cost / lead | Notes |
 |---|---|---|---|---|---|---|
-| v0 | baseline prompt | synthetic | pending | pending | pending | |
+| v0 | baseline prompt, gpt-4o-mini | synthetic (n=10) | 95.2% | 7.7% | $0.0002 | 4 misses: 1 clear error, 3 arguable labels. See [failure review](eval/data/NOTES.md#v0-failure-review) |
+
+Median latency 1.9 s. Ten examples is a smoke test, not a benchmark: each field miss moves accuracy about 1.6 points and one lead/spam miss moves recall about 11.
 
 ## Decisions & Tradeoffs
 
