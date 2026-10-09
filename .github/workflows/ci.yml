@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+
+  # Costs real API calls and results vary run to run, so it only runs on main or
+  # by hand, and it reports instead of gating. The score gate comes once the
+  # dataset is big enough for one flipped field not to swing the number.
+  eval:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - name: Run eval
+        if: env.OPENAI_API_KEY != '' && hashFiles('eval/data/synthetic.jsonl') != ''
+        run: uv run python -m eval.run_eval --label ci-${{ github.sha }}
+      - uses: actions/upload-artifact@v4
+        if: env.OPENAI_API_KEY != '' && hashFiles('eval/data/synthetic.jsonl') != ''
+        with:
+          name: eval-results
+          path: eval/results/*.json
