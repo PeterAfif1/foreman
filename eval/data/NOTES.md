@@ -24,3 +24,25 @@ Run `eval/results/20261009-153721_v0.json` (gpt-4o-mini, prompt v0).
 | gen-009 | `job_types: [addition, bathroom]` vs. label `[addition]` | **Kept the label.** Rule: rooms built as part of new construction are `addition`; `bathroom` means work on an existing bathroom. Added to the prompt in v1. |
 
 Takeaway: half of the misses come from labeling rules that weren't pinned down, not from the model. Fix the labels first, then the prompt, then rerun as v1.
+
+## v1 review
+
+Prompt v1 vs. v0, 3 runs each on the reviewed labels (`eval/results/*_v0-r*.json`, `*_v1-r*.json`).
+
+The v1 rules are written in general terms on purpose. They don't quote any test example, so the gains aren't the model memorizing the eval set.
+
+| ID | v0 (3 runs) | v1 (3 runs) |
+|---|---|---|
+| gen-004 callback only | not a lead, 3/3 | **fixed** |
+| gen-008 "budget is flexible" | urgency `flexible`, 3/3 | **fixed** |
+| gen-009 bath inside addition | `[addition, bathroom]`, 3/3 | **fixed** |
+| gen-008 landmark as location | "by the high school", 1/3 | fixed |
+| gen-003 "before we move in" | correct (`soon`) | **regressed** to null, 3/3 |
+| gen-010 name from email address | "Carlos Reyes", 2/3 | "Carlos Reyes", 3/3 |
+
+v1 is also stable: identical scores on all 3 runs, where v0 ranged 93.7% to 96.8%.
+
+Open for v2:
+- **gen-003:** the "timing only" rule made the model stricter, so an implied deadline now reads as no timing. It's a trade between the two urgency failures.
+- **gen-010:** decide whether a name inside an email address counts. If not, the prompt needs a rule. If yes, relabel it. Either way it's a labeling decision first.
+- Both are single examples. Writing a few more leads for each case before tuning again would avoid fitting the prompt to one message.

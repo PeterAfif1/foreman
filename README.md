@@ -61,9 +61,11 @@ Also tracked: per-field accuracy, omission rate, lead vs. spam precision and rec
 
 | Version | Change | Dataset | Accuracy | Hallucination rate | Cost / lead | Notes |
 |---|---|---|---|---|---|---|
-| v0 | baseline prompt, gpt-4o-mini | synthetic (n=10) | 95.2% | 7.7% | $0.0002 | 4 misses: 1 clear error, 3 arguable labels. See [failure review](eval/data/NOTES.md#v0-failure-review) |
+| v0 | baseline prompt, gpt-4o-mini | synthetic (n=10), first labels, 1 run | 95.2% | 7.7% | $0.0002 | First run. Review found 1 wrong label (gen-003), fixed before the runs below. |
+| v0 | same prompt, rerun | synthetic (n=10), reviewed labels, 3 runs | 95.2% (93.7 to 96.8) | 8.0% (4.0 to 12.0) | $0.00015 | Missed a callback-only lead every run, read "budget is flexible" as timing, tagged a bathroom inside an addition as a remodel. |
+| v1 | urgency is timing only; contact requests are leads; rooms in an addition are "addition" | same, 3 runs | **96.8%** (all 3) | **4.0%** (all 3) | $0.00016 | Fixed all three. Lead recall 88.9% to 100%. New miss: a move-in deadline no longer read as "soon". Still pulls a name out of an email address. [Review](eval/data/NOTES.md#v1-review) |
 
-Median latency 1.9 s. Ten examples is a smoke test, not a benchmark: each field miss moves accuracy about 1.6 points and one lead/spam miss moves recall about 11.
+Median latency is about 1.3 s. Ranges are min to max across 3 runs; v0 swung 8 points on hallucination rate between identical runs, which is why every version gets several runs and CI doesn't gate on one. Ten examples is a smoke test, not a benchmark: each field miss moves accuracy about 1.6 points.
 
 ## Decisions & Tradeoffs
 

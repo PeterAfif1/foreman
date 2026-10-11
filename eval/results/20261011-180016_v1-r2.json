@@ -1,0 +1,515 @@
+{
+  "label": "v1-r2",
+  "timestamp": "2026-10-11T18:00:16+00:00",
+  "git": {
+    "sha": "f241803",
+    "dirty": true
+  },
+  "model": "gpt-4o-mini",
+  "prompt_version": "v1",
+  "dataset": {
+    "path": "eval/data/synthetic.jsonl",
+    "sha256": "986f9af1a088",
+    "n": 10
+  },
+  "summary": {
+    "overall_accuracy": 0.9682539682539683,
+    "hallucination_rate": 0.04,
+    "omission_rate": 0.02631578947368421,
+    "is_lead_precision": 1.0,
+    "is_lead_recall": 1.0,
+    "avg_cost_usd": 0.000161715,
+    "median_latency_ms": 1265.8053330087569,
+    "errors": 0
+  },
+  "fields": {
+    "customer_name": {
+      "correct": 8,
+      "hallucination": 1
+    },
+    "contact": {
+      "correct": 9
+    },
+    "job_types": {
+      "correct": 9
+    },
+    "location": {
+      "correct": 9
+    },
+    "budget_min": {
+      "correct": 9
+    },
+    "budget_max": {
+      "correct": 9
+    },
+    "urgency": {
+      "correct": 8,
+      "omission": 1
+    }
+  },
+  "examples": [
+    {
+      "id": "gen-001",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": "Robert Chen",
+        "contact": "robert.chen@gmail.com",
+        "job_types": [
+          "bathroom"
+        ],
+        "location": "Pasadena",
+        "budget_min": 25000,
+        "budget_max": 25000,
+        "urgency": "soon",
+        "scope_summary": "Master bathroom remodel.",
+        "missing_info": [
+          "What's included in the remodel (shower, tub, vanity, layout changes)?"
+        ]
+      },
+      "cost_usd": 0.00015345,
+      "latency_ms": 1104,
+      "pred": {
+        "is_lead": true,
+        "customer_name": "Robert Chen",
+        "contact": "robert.chen@gmail.com",
+        "job_types": [
+          "bathroom"
+        ],
+        "location": "Pasadena",
+        "budget_min": 25000,
+        "budget_max": 25000,
+        "urgency": "soon",
+        "scope_summary": "Remodel master bathroom.",
+        "missing_info": []
+      },
+      "outcomes": {
+        "customer_name": "correct",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "correct"
+      }
+    },
+    {
+      "id": "gen-002",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": "Mike",
+        "contact": null,
+        "job_types": [
+          "flooring"
+        ],
+        "location": null,
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": "flexible",
+        "scope_summary": "New flooring in the living room and hallway, hardwood or LVP.",
+        "missing_info": [
+          "Best phone number or email?",
+          "Where is the house?",
+          "Approximate square footage?",
+          "Budget range?"
+        ]
+      },
+      "cost_usd": 0.00017055,
+      "latency_ms": 1231,
+      "pred": {
+        "is_lead": true,
+        "customer_name": "Mike",
+        "contact": null,
+        "job_types": [
+          "flooring"
+        ],
+        "location": null,
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": "flexible",
+        "scope_summary": "Request for a quote for new floors in the living room and hallway, considering hardwood or LVP.",
+        "missing_info": [
+          "What is the square footage of the areas to be floored?",
+          "Do you have a preference for hardwood or LVP?"
+        ]
+      },
+      "outcomes": {
+        "customer_name": "correct",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "correct"
+      }
+    },
+    {
+      "id": "gen-003",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": "Priya",
+        "contact": "818-555-0123",
+        "job_types": [
+          "kitchen",
+          "roofing"
+        ],
+        "location": "Burbank",
+        "budget_min": 80000,
+        "budget_max": 100000,
+        "urgency": "soon",
+        "scope_summary": "Kitchen remodel and roof replacement on a newly purchased house.",
+        "missing_info": [
+          "When is the move-in date?",
+          "Kitchen scope: layout change or finishes only?"
+        ]
+      },
+      "cost_usd": 0.00015914999999999997,
+      "latency_ms": 1137,
+      "pred": {
+        "is_lead": true,
+        "customer_name": "Priya",
+        "contact": "818-555-0123",
+        "job_types": [
+          "kitchen",
+          "roofing"
+        ],
+        "location": "Burbank",
+        "budget_min": 80000,
+        "budget_max": 100000,
+        "urgency": null,
+        "scope_summary": "Redo the kitchen and replace the roof before moving in.",
+        "missing_info": []
+      },
+      "outcomes": {
+        "customer_name": "correct",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "omission"
+      }
+    },
+    {
+      "id": "gen-004",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": null,
+        "contact": "3105550144",
+        "job_types": [],
+        "location": null,
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": null,
+        "scope_summary": null,
+        "missing_info": [
+          "What work do you need done?",
+          "Where is the property?"
+        ]
+      },
+      "cost_usd": 0.00014025,
+      "latency_ms": 1009,
+      "pred": {
+        "is_lead": true,
+        "customer_name": null,
+        "contact": "3105550144",
+        "job_types": [],
+        "location": null,
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": null,
+        "scope_summary": null,
+        "missing_info": []
+      },
+      "outcomes": {
+        "customer_name": "correct",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "correct"
+      }
+    },
+    {
+      "id": "gen-005",
+      "source": "generated",
+      "truth": {
+        "is_lead": false,
+        "customer_name": null,
+        "contact": null,
+        "job_types": [],
+        "location": null,
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": null,
+        "scope_summary": null,
+        "missing_info": []
+      },
+      "cost_usd": 0.00014264999999999997,
+      "latency_ms": 1058,
+      "pred": {
+        "is_lead": false,
+        "customer_name": null,
+        "contact": null,
+        "job_types": [],
+        "location": null,
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": null,
+        "scope_summary": null,
+        "missing_info": []
+      },
+      "outcomes": {}
+    },
+    {
+      "id": "gen-006",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": "Ana",
+        "contact": "747-555-0110",
+        "job_types": [
+          "repair"
+        ],
+        "location": "Glendale",
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": "emergency",
+        "scope_summary": "Burst pipe under the kitchen sink with water on the floor; main is shut off.",
+        "missing_info": [
+          "Any damage to cabinets or flooring that needs repair after?"
+        ]
+      },
+      "cost_usd": 0.0001668,
+      "latency_ms": 1325,
+      "pred": {
+        "is_lead": true,
+        "customer_name": "Ana",
+        "contact": "747-555-0110",
+        "job_types": [
+          "repair"
+        ],
+        "location": "Glendale",
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": "emergency",
+        "scope_summary": "Pipe burst under the kitchen sink, causing water to flood the floor.",
+        "missing_info": [
+          "What type of repair is needed?",
+          "Is there any damage to cabinets or flooring?"
+        ]
+      },
+      "outcomes": {
+        "customer_name": "correct",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "correct"
+      }
+    },
+    {
+      "id": "gen-007",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": "Linda Barrett",
+        "contact": null,
+        "job_types": [
+          "roofing"
+        ],
+        "location": "Sherman Oaks",
+        "budget_min": 10000,
+        "budget_max": 15000,
+        "urgency": "flexible",
+        "scope_summary": "Full roof replacement on a 1960s ranch house.",
+        "missing_info": [
+          "Best phone number or email?",
+          "Roof size or square footage?"
+        ]
+      },
+      "cost_usd": 0.0001575,
+      "latency_ms": 1354,
+      "pred": {
+        "is_lead": true,
+        "customer_name": "Linda Barrett",
+        "contact": null,
+        "job_types": [
+          "roofing"
+        ],
+        "location": "Sherman Oaks",
+        "budget_min": 10000,
+        "budget_max": 15000,
+        "urgency": "flexible",
+        "scope_summary": "Looking to get the roof redone on a 1960s ranch house.",
+        "missing_info": []
+      },
+      "outcomes": {
+        "customer_name": "correct",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "correct"
+      }
+    },
+    {
+      "id": "gen-008",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": null,
+        "contact": null,
+        "job_types": [
+          "other"
+        ],
+        "location": null,
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": null,
+        "scope_summary": "New deck, roughly 12x16, off the back of the house.",
+        "missing_info": [
+          "Name and best contact?",
+          "Address or neighborhood?",
+          "Wood or composite?",
+          "Rough budget?"
+        ]
+      },
+      "cost_usd": 0.00016935,
+      "latency_ms": 1300,
+      "pred": {
+        "is_lead": true,
+        "customer_name": null,
+        "contact": null,
+        "job_types": [
+          "other"
+        ],
+        "location": null,
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": null,
+        "scope_summary": "Want a deck off the back of the house, maybe 12x16.",
+        "missing_info": [
+          "What is the desired material for the deck?",
+          "Do you have a specific design in mind?",
+          "When are you looking to start the project?"
+        ]
+      },
+      "outcomes": {
+        "customer_name": "correct",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "correct"
+      }
+    },
+    {
+      "id": "gen-009",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": "Jen",
+        "contact": "(818) 555-0163",
+        "job_types": [
+          "addition"
+        ],
+        "location": "Tarzana",
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": null,
+        "scope_summary": "Roughly 400 sq ft addition with a bedroom and bathroom on the back of the house.",
+        "missing_info": [
+          "Budget range?",
+          "Do you have plans or need design work?"
+        ]
+      },
+      "cost_usd": 0.00018194999999999998,
+      "latency_ms": 1314,
+      "pred": {
+        "is_lead": true,
+        "customer_name": "Jen",
+        "contact": "(818) 555-0163",
+        "job_types": [
+          "addition"
+        ],
+        "location": "Tarzana",
+        "budget_min": null,
+        "budget_max": null,
+        "urgency": null,
+        "scope_summary": "Add a bedroom and bathroom onto the back of the house, probably around 400 sq ft.",
+        "missing_info": [
+          "What is the desired timeline for the project?",
+          "Do you have any specific design preferences or requirements?"
+        ]
+      },
+      "outcomes": {
+        "customer_name": "correct",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "correct"
+      }
+    },
+    {
+      "id": "gen-010",
+      "source": "generated",
+      "truth": {
+        "is_lead": true,
+        "customer_name": null,
+        "contact": "carlos.reyes88@gmail.com",
+        "job_types": [
+          "bathroom"
+        ],
+        "location": "Westwood",
+        "budget_min": null,
+        "budget_max": 8000,
+        "urgency": null,
+        "scope_summary": "Retile the shower; grout is failing and some tiles are cracked.",
+        "missing_info": [
+          "Name?",
+          "Shower size?",
+          "Timeline?"
+        ]
+      },
+      "cost_usd": 0.0001755,
+      "latency_ms": 1551,
+      "pred": {
+        "is_lead": true,
+        "customer_name": "Carlos Reyes",
+        "contact": "carlos.reyes88@gmail.com",
+        "job_types": [
+          "bathroom"
+        ],
+        "location": "Westwood",
+        "budget_min": null,
+        "budget_max": 8000,
+        "urgency": null,
+        "scope_summary": "Retiling the shower due to shot grout and a few cracked tiles.",
+        "missing_info": [
+          "What is the size of the shower?",
+          "Do you have a specific tile in mind?",
+          "When would you like the work to be done?"
+        ]
+      },
+      "outcomes": {
+        "customer_name": "hallucination",
+        "contact": "correct",
+        "job_types": "correct",
+        "location": "correct",
+        "budget_min": "correct",
+        "budget_max": "correct",
+        "urgency": "correct"
+      }
+    }
+  ]
+}
