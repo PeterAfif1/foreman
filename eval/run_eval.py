@@ -26,7 +26,7 @@ def git_info() -> dict:
 
     return {
         "sha": run("rev-parse", "--short", "HEAD").strip(),
-        "dirty": bool(run("status", "--porcelain")),
+        "dirty": bool(run("status", "--porcelain", "--untracked-files=no")),
     }
 
 
