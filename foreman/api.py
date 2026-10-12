@@ -1,8 +1,8 @@
-"""HTTP API for the approval flow.
+"""HTTP API and dashboard for the approval flow.
 
     uv run uvicorn foreman.api:app --reload
 
-Then open http://localhost:8000/docs to try every endpoint in the browser.
+The dashboard is at http://localhost:8000 and the API docs at /docs.
 """
 
 import json
@@ -10,10 +10,11 @@ import os
 from collections import Counter
 from datetime import date
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from foreman.extract import extract
@@ -21,6 +22,8 @@ from foreman.schema import Lead
 from foreman.store import DEFAULT_DB, REVIEW_FIELDS, LeadRecord, Store
 
 app = FastAPI(title="Foreman", description="Lead intake with human approval.")
+
+DASHBOARD = Path(__file__).parent / "static" / "index.html"
 
 
 @lru_cache
@@ -59,6 +62,11 @@ class LeadOut(BaseModel):
     @classmethod
     def from_record(cls, r: LeadRecord) -> "LeadOut":
         return cls(**{name: getattr(r, name) for name in cls.model_fields})
+
+
+@app.get("/", include_in_schema=False)
+def dashboard():
+    return FileResponse(DASHBOARD)
 
 
 @app.get("/health")

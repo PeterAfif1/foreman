@@ -114,3 +114,9 @@ def test_export_matches_eval_format(client):
     assert len(lines) == 1
     row = Lead.model_validate(__import__("json").loads(lines[0])["label"])
     assert row.location == "Encino"
+
+
+def test_dashboard_is_served(client):
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "<title>Foreman</title>" in r.text
