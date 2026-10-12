@@ -8,7 +8,7 @@ Judgment calls, so the same situation gets the same label next time.
 - **gen-008 ("right by the high school"):** `location` null. A landmark isn't a city or neighborhood.
 - **gen-009 ("next spring"):** `urgency` null. It's a date, but months out, so not "soon", and they never said timing is open, so not "flexible".
 - **gen-009 (bedroom + bathroom addition):** `job_types: ["addition"]`. The bathroom is part of the new addition, not a remodel of an existing bathroom.
-- **gen-010 (name only in the email address):** `customer_name` null. "carlos.reyes88" isn't the customer saying their name. Filling it is counted as a hallucination.
+- **gen-010 (name only in the email address):** `customer_name` null, `name_hint` "Carlos Reyes". Before v2 there was no hint field, so filling the name counted as a hallucination.
 - **gen-003 ("before we move in"):** `urgency: soon`. A move-in date is a near deadline even without timing words. Changed from null after the v0 review.
 - **Deadlines:** `soon` means the deadline is within 60 days of `received_at`. Further out is null. Every row has a `received_at` date so deadline labels can be checked:
   - gen-011 "before Thanksgiving": Thanksgiving is 2026-11-26, 45 days after 2026-10-12, so `soon`.
@@ -18,7 +18,7 @@ Judgment calls, so the same situation gets the same label next time.
   - gen-009 "next spring": 5+ months after 2026-10-09, so null.
   - gen-003 "before we move in": no date given, but a move-in on a just-bought house is near by nature, so `soon`.
   - Known gap: the extractor doesn't see `received_at` yet, so it can't do this math. The prompt also still says "next few weeks" rather than 60 days.
-- **Names in email addresses (gen-012, gen-015, gen-016):** the email never supplies a name. If they sign or introduce themselves, use exactly what they wrote ("Sam", not "Samantha Ortiz"). Same rule as gen-010.
+- **Names in email addresses:** `customer_name` is only what they wrote ("Sam", never "Samantha Ortiz"). A name the email suggests goes in `name_hint` when it adds something: gen-010 "Carlos Reyes", gen-012 "K. Oduya", gen-015 "Jenny Park", gen-016 "Samantha Ortiz" (fuller than "Sam"). No hint when the email only repeats the name they gave (gen-001 robert.chen, gen-013 mellison).
 - **gen-013 (cracked kitchen floor tiles):** `job_types: ["flooring"]`, not `kitchen`. It's floor work that happens to be in a kitchen.
 - **gen-014 (drainage and grading):** `other`. Not a category we have.
 - **Single number budgets:** "around $25,000" sets min and max both to 25000 (gen-001).
