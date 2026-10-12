@@ -11,3 +11,5 @@ scripts/
 .pytest_cache/
 .ruff_cache/
 .github/
+web/node_modules/
+foreman/static/app/

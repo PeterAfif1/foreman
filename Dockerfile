@@ -1,3 +1,11 @@
+# Build the board (React) first. Only the built files go into the final image.
+FROM node:22-slim AS web
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY web/ ./
+RUN npm run build -- --outDir /board
+
 FROM python:3.12-slim
 
 # uv, pinned, copied from its official image instead of installed with pip.
@@ -11,6 +19,7 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --locked --no-dev --no-install-project
 
 COPY foreman/ foreman/
+COPY --from=web /board foreman/static/app
 RUN uv sync --locked --no-dev
 
 # Run as a normal user. data/ holds the SQLite file and should be a volume.
