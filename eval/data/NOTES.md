@@ -107,3 +107,26 @@ Next: these are wording problems in the urgency rule, each from one example. Wri
 ## Found outside the eval
 
 - "before Thanksgiving" was turned into `deadline: 2026-11-01`. Thanksgiving 2026 is Nov 26. Still `soon`, so the score didn't catch it, but holiday dates are a weak spot. Deadlines aren't labeled yet, so the eval can't see this. Worth labeling deadlines once there are more of them.
+
+## v3 on 27 leads
+
+v3 unchanged, 3 runs on all 27 leads. v1 rerun from commit 4e933bf on the same 27 for a fair comparison.
+
+| | Accuracy | Hallucination |
+|---|---|---|
+| v1 | 96.0% (95.6 to 96.2) | 5.9% (5.4 to 6.8) |
+| v3, model only | 95.6% | 5.4% |
+| **v3, with rules** | **97.3%** | **1.4%** |
+
+New leads: 7 of 9 right every run. gen-020 and gen-025 (money and design words) stayed null, gen-019 and gen-026 (open timing) were `flexible`, gen-021 and gen-022 (spans) were `soon`, gen-024 `emergency`.
+
+Misses:
+- **gen-023** "ASAP" with no damage: `emergency`, labeled `soon`. New.
+- **gen-003, gen-008, gen-016**: same urgency misses as before.
+- **gen-012** deck tagged `addition` instead of `other`. Didn't happen in the 18-lead runs the same morning with the same prompt.
+
+Two things about run-to-run stability:
+- Three back-to-back runs give identical scores, but gen-012 changed between sessions, and the README example put "maple st" in `location` in 1 of 3 separate calls. Temperature 0 isn't fully deterministic. Three runs in a row understate the real spread.
+- gen-027 (the README example) was correct in all 3 eval runs.
+
+Urgency is now the weakest field (84.6%), with 4 of the 6 misses. All are about which word maps to which level, not date math.
