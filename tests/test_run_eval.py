@@ -26,7 +26,7 @@ def test_run_eval_end_to_end(tmp_path, monkeypatch):
     ]
     data.write_text("\n".join(json.dumps(r) for r in rows))
 
-    def fake_extract(text, model=None):
+    def fake_extract(text, model=None, received_at=None):
         if text == "buy SEO":
             raise RuntimeError("boom")
         lead = Lead(is_lead=True, job_types=["roofing"], budget_max=9000)

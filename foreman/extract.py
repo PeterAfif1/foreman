@@ -3,6 +3,7 @@
 import os
 import time
 from dataclasses import dataclass
+from datetime import date
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -42,7 +43,21 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float | 
     return (input_tokens * price_in + output_tokens * price_out) / 1_000_000
 
 
-def extract(text: str, model: str | None = None, client: OpenAI | None = None) -> Extraction:
+def build_user_message(text: str, received_at: date | str | None = None) -> str:
+    """The model can't judge "soon" without knowing when the message arrived."""
+    if received_at is None:
+        return text
+    if isinstance(received_at, str):
+        received_at = date.fromisoformat(received_at)
+    return f"Received: {received_at:%A, %B %-d, %Y}\n\n{text}"
+
+
+def extract(
+    text: str,
+    model: str | None = None,
+    client: OpenAI | None = None,
+    received_at: date | str | None = None,
+) -> Extraction:
     load_dotenv()
     model = model or os.getenv("FOREMAN_MODEL", DEFAULT_MODEL)
     client = client or OpenAI()
@@ -55,7 +70,7 @@ def extract(text: str, model: str | None = None, client: OpenAI | None = None) -
         temperature=0,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": text},
+            {"role": "user", "content": build_user_message(text, received_at)},
         ],
         response_format=Lead,
     )
@@ -82,7 +97,7 @@ def extract(text: str, model: str | None = None, client: OpenAI | None = None) -
 if __name__ == "__main__":
     import sys
 
-    result = extract(sys.stdin.read())
+    result = extract(sys.stdin.read(), received_at=date.today())
     print(result.lead.model_dump_json(indent=2))
     print(
         f"\n{result.model} {result.prompt_version}  {result.latency_ms:.0f} ms  ${result.cost_usd}"

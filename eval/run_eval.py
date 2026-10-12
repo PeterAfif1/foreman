@@ -10,7 +10,14 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
-from eval.metrics import OUTCOMES, SCORED_FIELDS, Report, aggregate, score_example
+from eval.metrics import (
+    ALL_FIELDS,
+    HINT_FIELDS,
+    OUTCOMES,
+    Report,
+    aggregate,
+    score_example,
+)
 from foreman.extract import DEFAULT_MODEL, extract
 from foreman.prompts import PROMPT_VERSION
 from foreman.schema import Lead
@@ -42,11 +49,12 @@ def fmt(value: float | None, pct: bool = True) -> str:
 
 def print_report(report: Report, errors: int) -> None:
     print(f"\n{'field':<15}{'accuracy':>10}" + "".join(f"{o:>15}" for o in OUTCOMES[1:]))
-    for name in SCORED_FIELDS:
+    for name in ALL_FIELDS:
         c = report.field_counts[name]
         print(
             f"{name:<15}{fmt(report.field_accuracy(name)):>10}"
             + "".join(f"{c[o]:>15}" for o in OUTCOMES[1:])
+            + ("   (hint, not in totals)" if name in HINT_FIELDS else "")
         )
     print()
     print(f"examples            {report.n_examples}  (extraction errors: {errors})")
@@ -81,7 +89,7 @@ def main() -> None:
         truth = Lead.model_validate(row["label"])
         record = {"id": row["id"], "source": row.get("source"), "truth": truth.model_dump()}
         try:
-            result = extract(row["text"], model=args.model)
+            result = extract(row["text"], model=args.model, received_at=row.get("received_at"))
             pred = result.lead
             model = result.model
             costs.append(result.cost_usd)
@@ -128,7 +136,7 @@ def main() -> None:
             "median_latency_ms": report.median_latency_ms,
             "errors": errors,
         },
-        "fields": {name: dict(report.field_counts[name]) for name in SCORED_FIELDS},
+        "fields": {name: dict(report.field_counts[name]) for name in ALL_FIELDS},
         "examples": examples,
     }
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

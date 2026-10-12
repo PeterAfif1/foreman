@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from foreman.extract import ExtractionError, estimate_cost, extract
+from foreman.extract import ExtractionError, build_user_message, estimate_cost, extract
 from foreman.schema import Lead
 
 
@@ -29,3 +29,19 @@ def test_extract_raises_on_refusal():
 
 def test_unknown_model_has_no_cost():
     assert estimate_cost("some-new-model", 100, 100) is None
+
+
+def test_received_date_is_put_in_front_of_the_message():
+    assert build_user_message("roof leak", "2026-10-12") == (
+        "Received: Monday, October 12, 2026\n\nroof leak"
+    )
+    assert build_user_message("roof leak") == "roof leak"
+
+
+def test_extract_sends_received_date():
+    client = fake_client(Lead(is_lead=True))
+    sent = {}
+    parse = client.chat.completions.parse
+    client.chat.completions.parse = lambda **kwargs: sent.update(kwargs) or parse(**kwargs)
+    extract("roof leak", model="gpt-4o-mini", client=client, received_at="2026-10-12")
+    assert sent["messages"][1]["content"].startswith("Received: Monday, October 12, 2026")
