@@ -2,9 +2,9 @@
 
 ![CI](https://github.com/PeterAfif1/foreman/actions/workflows/ci.yml/badge.svg)
 
-AI intake for contractors. A messy text or email goes in, structured job details come out, with anything the customer didn't say left blank instead of guessed.
+A job board for contractors with AI intake. A messy text or email goes in and becomes a job card, with anything the customer didn't say left blank instead of guessed. Cards move through the pipeline like Trello: new lead, contacted, site visit, quote sent, won, in progress, done.
 
-I'm building it for a real small construction business.
+I'm building it for a real small construction business. The demo runs on synthetic leads.
 
 ## Example
 
@@ -63,11 +63,15 @@ uv run pytest             # no API calls
 uv run python -m eval.run_eval --label test
 ```
 
-Or run the dashboard at http://localhost:8000 (API docs at `/docs`). It needs a password and a secret key in `.env` (see `.env.example`):
+Or run the board at http://localhost:8000 (API docs at `/docs`). It needs a password and a secret key in `.env` (see `.env.example`):
 
 ```bash
-uv run uvicorn foreman.api:create_app --factory --reload
+cd web && npm install && npm run build && cd ..
+uv run python -m scripts.seed_demo     # demo board from the synthetic leads
+FOREMAN_DB=data/demo.db uv run uvicorn foreman.api:create_app --factory --reload
 ```
+
+Working on the board itself? Run `npm run dev` in `web/` for live reload on port 5173. It forwards API calls to port 8000.
 
 Or the production image:
 
@@ -75,7 +79,7 @@ Or the production image:
 docker compose up --build
 ```
 
-Paste a message, check what was pulled out, fix anything wrong and approve. Every fix is recorded. `/stats` shows how often each field needed fixing on real messages, and `/export` turns approved leads into eval data (gitignored, never committed).
+Paste a message and it becomes a card in New lead. Open a card to check what the AI pulled out, fix anything wrong, and drag it along as the job moves. Every fix is recorded: `/api/stats` shows how often each field needed fixing, and `/api/export` turns checked cards into eval data (gitignored, never committed).
 
 ## Next
 
