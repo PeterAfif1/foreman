@@ -8,12 +8,13 @@ never used to produce or "fix" ground truth.
 One JSON object per line in `eval/data/synthetic.jsonl`:
 
 ```json
-{"id": "hw-001", "source": "handwritten", "labeled_by": "peter", "text": "hey saw ur truck on maple st. kitchen redo, maybe floors too. budget under 30k? call 818 555 0142 - dana", "label": {"is_lead": true, "customer_name": "Dana", "contact": "818 555 0142", "job_types": ["kitchen", "flooring"], "location": null, "budget_min": null, "budget_max": 30000, "urgency": null, "scope_summary": "Kitchen remodel, possibly new flooring.", "missing_info": ["Address or neighborhood?", "Timeline?"]}}
+{"id": "hw-001", "source": "handwritten", "labeled_by": "peter", "received_at": "2026-10-12", "text": "hey saw ur truck on maple st. kitchen redo, maybe floors too. budget under 30k? call 818 555 0142 - dana", "label": {"is_lead": true, "customer_name": "Dana", "contact": "818 555 0142", "job_types": ["kitchen", "flooring"], "location": null, "budget_min": null, "budget_max": 30000, "urgency": null, "scope_summary": "Kitchen remodel, possibly new flooring.", "missing_info": ["Address or neighborhood?", "Timeline?"]}}
 ```
 
 - `id`: `hw-NNN` for handwritten, `gen-NNN` for generated.
 - `source`: `handwritten`, `generated`, or `public`.
 - `labeled_by`: who wrote the label.
+- `received_at`: the date the message counts as sent. Deadline labels are relative to it.
 
 ## Field rules
 
@@ -25,7 +26,7 @@ One JSON object per line in `eval/data/synthetic.jsonl`:
 | `job_types` | Every job asked for. "maybe floors too" counts. Use `other` only for real jobs outside the list. |
 | `location` | As written. "on maple st" is a street, not a city. Use null unless a city or neighborhood is named. |
 | `budget_min` / `budget_max` | "under 30k": max 30000. "at least 10k": min 10000. "about 15k": both 15000. "10 to 15": both bounds. "not sure": null. |
-| `urgency` | `emergency`: active damage or safety issue. `soon`: next few weeks or a near date. `flexible`: they say timing is open. Otherwise null. |
+| `urgency` | `emergency`: active damage or safety issue. `soon`: a deadline within 60 days of `received_at`, or an implied near one (a move-in). `flexible`: they say timing is open. Otherwise null. |
 | `scope_summary` | 1 to 2 sentences. Not scored yet. |
 | `missing_info` | Questions you'd actually ask before quoting. Not scored yet. |
 

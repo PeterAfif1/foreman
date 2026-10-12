@@ -2,6 +2,7 @@
 model failure."""
 
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -32,7 +33,8 @@ def test_ids_are_unique():
 @pytest.mark.parametrize("row", ROWS, ids=[row_id(r) for r in ROWS])
 def test_row_is_valid(row):
     _, _, data = row
-    assert {"id", "source", "labeled_by", "text", "label"} <= data.keys()
+    assert {"id", "source", "labeled_by", "received_at", "text", "label"} <= data.keys()
+    date.fromisoformat(data["received_at"])
     assert data["text"].strip()
     label = Lead.model_validate(data["label"])
 
