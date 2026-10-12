@@ -32,7 +32,15 @@ class Lead(BaseModel):
         "vendor or marketing pitches."
     )
     customer_name: str | None = Field(
-        default=None, description="Name as written. Null if not given."
+        default=None,
+        description="Name exactly as the person wrote it. Never taken from an email "
+        "address or handle. Null if not given.",
+    )
+    name_hint: str | None = Field(
+        default=None,
+        description="A name suggested by an email address or handle, only when it adds "
+        "to customer_name (a name when none was given, or a fuller one). Shown to the "
+        "contractor as a guess. Null otherwise.",
     )
     contact: str | None = Field(
         default=None, description="Phone number or email written in the message. Null if none."

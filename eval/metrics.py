@@ -7,6 +7,9 @@ Every scored field lands in exactly one bucket:
   wrong         both filled, not matching
 
 scope_summary and missing_info are free text and are not scored here yet.
+
+name_hint is scored per field but kept out of the totals: it's a labeled guess by
+design, so it shouldn't count toward the hallucination rate.
 """
 
 import re
@@ -25,6 +28,10 @@ SCORED_FIELDS = [
     "budget_max",
     "urgency",
 ]
+
+# Guesses the model is allowed to make, as long as they're marked as guesses.
+HINT_FIELDS = ["name_hint"]
+ALL_FIELDS = SCORED_FIELDS + HINT_FIELDS
 
 OUTCOMES = ("correct", "hallucination", "omission", "wrong")
 
@@ -57,6 +64,11 @@ def values_match(field_name: str, pred, truth) -> bool:
         return bool(p and t) and (p <= t or t <= p)
     if field_name == "customer_name":
         return _norm_text(pred) == _norm_text(truth)
+    if field_name == "name_hint":
+        # A hint is right if it names the same person: "K. Oduya" ~ "Oduya".
+        p = set(_norm_text(pred).replace(".", " ").split())
+        t = set(_norm_text(truth).replace(".", " ").split())
+        return bool(p and t) and (p <= t or t <= p)
     return pred == truth
 
 
@@ -76,7 +88,7 @@ def score_example(pred: Lead, truth: Lead) -> dict[str, str]:
     real lead; for spam, is_lead is the only thing that matters."""
     if not truth.is_lead:
         return {}
-    return {f: classify(f, getattr(pred, f), getattr(truth, f)) for f in SCORED_FIELDS}
+    return {f: classify(f, getattr(pred, f), getattr(truth, f)) for f in ALL_FIELDS}
 
 
 @dataclass
@@ -108,20 +120,22 @@ def aggregate(
 ) -> Report:
     """pairs is a list of (predicted, truth)."""
     report = Report(n_examples=len(pairs))
-    report.field_counts = {f: Counter() for f in SCORED_FIELDS}
+    report.field_counts = {f: Counter() for f in ALL_FIELDS}
     truth_empty = truth_filled = 0
 
     for pred, truth in pairs:
         for name, outcome in score_example(pred, truth).items():
             report.field_counts[name][outcome] += 1
+            if name not in SCORED_FIELDS:
+                continue
             if _is_empty(getattr(truth, name)):
                 truth_empty += 1
             else:
                 truth_filled += 1
 
     totals = Counter()
-    for c in report.field_counts.values():
-        totals.update(c)
+    for name in SCORED_FIELDS:
+        totals.update(report.field_counts[name])
     report.overall_accuracy = _ratio(totals["correct"], sum(totals.values()))
     # Rates use the right denominator: you can only hallucinate where the truth is
     # empty, and only omit where it is filled.

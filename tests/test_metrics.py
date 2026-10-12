@@ -23,6 +23,9 @@ from foreman.schema import Lead
         ("customer_name", "  maria  ", "Maria", "correct"),
         ("customer_name", "", None, "correct"),
         ("urgency", "soon", None, "hallucination"),
+        ("name_hint", "K. Oduya", "Oduya", "correct"),
+        ("name_hint", "Samantha Ortiz", "samantha ortiz", "correct"),
+        ("name_hint", "Jenny Park", "Carlos Reyes", "wrong"),
     ],
 )
 def test_classify(field_name, pred, truth, expected):
@@ -71,3 +74,12 @@ def test_empty_input():
     report = aggregate([])
     assert report.overall_accuracy is None
     assert report.is_lead_precision is None
+
+
+def test_name_hint_is_scored_but_not_in_totals():
+    truth = Lead(is_lead=True, customer_name="Sam")
+    pred = Lead(is_lead=True, customer_name="Sam", name_hint="Samantha Ortiz")
+    report = aggregate([(pred, truth)])
+    assert report.field_counts["name_hint"]["hallucination"] == 1
+    assert report.hallucination_rate == 0.0
+    assert report.overall_accuracy == 1.0
