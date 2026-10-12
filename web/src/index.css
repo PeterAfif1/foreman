@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #c2410c;
+  --color-accent-strong: #9a3412;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+  body {
+    @apply bg-stone-100 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
+  }
+}

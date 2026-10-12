@@ -24,3 +24,7 @@ eval/data/private/
 # Local database with real leads
 data/
 *.db
+
+# Front end
+web/node_modules/
+foreman/static/app/
