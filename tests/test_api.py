@@ -1,7 +1,9 @@
+import logging
+
 import pytest
 from fastapi.testclient import TestClient
 
-from foreman.api import create_app, get_extractor, get_store
+from foreman.api import HideHealthChecks, create_app, get_extractor, get_store
 from foreman.auth import AuthSettings, load_settings
 from foreman.extract import Extraction
 from foreman.schema import Lead
@@ -197,3 +199,22 @@ def test_auth_off_must_be_explicit(monkeypatch):
     monkeypatch.setattr("foreman.auth.load_dotenv", lambda: None)  # ignore the real .env
     monkeypatch.setenv("FOREMAN_AUTH", "off")
     assert load_settings().enabled is False
+
+
+def access_record(path):
+    # Same shape uvicorn uses: (client, method, path, http version, status)
+    return logging.LogRecord(
+        "uvicorn.access",
+        logging.INFO,
+        "",
+        0,
+        '%s - "%s %s HTTP/%s" %d',
+        ("127.0.0.1:5000", "GET", path, "1.1", 200),
+        None,
+    )
+
+
+def test_health_checks_are_hidden_from_the_access_log():
+    f = HideHealthChecks()
+    assert f.filter(access_record("/health")) is False
+    assert f.filter(access_record("/leads")) is True

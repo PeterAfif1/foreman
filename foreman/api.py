@@ -7,6 +7,7 @@ settings come from the environment (see auth.py).
 """
 
 import json
+import logging
 import os
 from collections import Counter
 from datetime import date
@@ -201,8 +202,19 @@ def export(store: StoreDep):
     return "\n".join(lines) + ("\n" if lines else "")
 
 
+class HideHealthChecks(logging.Filter):
+    """Docker calls /health every 30 seconds; those lines bury the real requests."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        return not (isinstance(args, tuple) and len(args) >= 3 and args[2] == "/health")
+
+
 def create_app(auth: AuthSettings | None = None) -> FastAPI:
     auth = auth or load_settings()
+    access_log = logging.getLogger("uvicorn.access")
+    if not any(isinstance(f, HideHealthChecks) for f in access_log.filters):
+        access_log.addFilter(HideHealthChecks())
     app = FastAPI(title="Foreman", description="Lead intake with human approval.")
     app.state.auth = auth
     app.state.limiter = LoginLimiter()
