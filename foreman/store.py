@@ -1,7 +1,11 @@
-"""SQLite storage for leads going through the approval flow.
+"""SQLite storage for leads and the job board they move through.
 
-Plain sqlite3, no ORM: one table, a handful of queries. The database file holds
-real customer messages, so it lives in data/ and is gitignored.
+Plain sqlite3, no ORM: a few tables, a handful of queries. The database file
+holds real customer messages, so it lives in data/ and is gitignored.
+
+A lead has two separate states:
+  status  pending | approved   whether a person has checked the AI's extraction
+  stage   new, contacted, ...  where the job is in the pipeline (the board column)
 """
 
 import json
@@ -30,9 +34,50 @@ CREATE TABLE IF NOT EXISTS leads (
     prompt_version TEXT,
     cost_usd REAL,
     latency_ms REAL,
-    error TEXT
-)
+    error TEXT,
+    stage TEXT NOT NULL DEFAULT 'new',
+    position REAL NOT NULL DEFAULT 0,  -- order within the column, lowest first
+    stage_changed_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS stages (
+    key TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    closed INTEGER NOT NULL DEFAULT 0  -- done or lost: no follow-up nudges
+);
+
+-- Every change to a card, oldest first. Card history and "no answer in 6 days"
+-- nudges both read from here.
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER NOT NULL REFERENCES leads(id),
+    at TEXT NOT NULL,
+    kind TEXT NOT NULL,  -- created | approved | moved
+    detail TEXT          -- JSON
+);
 """
+
+# A standard contractor pipeline. Stored in the database so it can be changed to
+# match how a business actually works.
+DEFAULT_STAGES = [
+    ("new", "New lead", False),
+    ("contacted", "Contacted", False),
+    ("site_visit", "Site visit", False),
+    ("quote_sent", "Quote sent", False),
+    ("won", "Won", False),
+    ("in_progress", "In progress", False),
+    ("done", "Done", True),
+    ("lost", "Lost", True),
+]
+
+# Columns added after the first version of the leads table. Older databases get
+# them on startup.
+ADDED_COLUMNS = {
+    "stage": "TEXT NOT NULL DEFAULT 'new'",
+    "position": "REAL NOT NULL DEFAULT 0",
+    "stage_changed_at": "TEXT",
+}
 
 # Fields compared when deciding what the reviewer changed. Same set the eval scores,
 # plus the hint and the free-text fields, since edits to those are useful signal too.
@@ -68,6 +113,28 @@ class LeadRecord:
     cost_usd: float | None
     latency_ms: float | None
     error: str | None
+    stage: str
+    position: float
+    stage_changed_at: str | None
+
+
+@dataclass
+class Stage:
+    key: str
+    name: str
+    position: int
+    closed: bool
+
+
+@dataclass
+class Event:
+    at: str
+    kind: str
+    detail: dict
+
+
+def _now() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def _lead(value: str | None) -> Lead | None:
@@ -91,7 +158,17 @@ class Store:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._conn() as conn:
-            conn.execute(SCHEMA)
+            existing = {r["name"] for r in conn.execute("PRAGMA table_info(leads)")}
+            if existing:
+                for name, ddl in ADDED_COLUMNS.items():
+                    if name not in existing:
+                        conn.execute(f"ALTER TABLE leads ADD COLUMN {name} {ddl}")
+            conn.executescript(SCHEMA)
+            if not conn.execute("SELECT 1 FROM stages LIMIT 1").fetchone():
+                conn.executemany(
+                    "INSERT INTO stages (key, name, position, closed) VALUES (?, ?, ?, ?)",
+                    [(k, n, i, int(c)) for i, (k, n, c) in enumerate(DEFAULT_STAGES)],
+                )
 
     @contextmanager
     def _conn(self):
@@ -119,6 +196,15 @@ class Store:
             cost_usd=row["cost_usd"],
             latency_ms=row["latency_ms"],
             error=row["error"],
+            stage=row["stage"],
+            position=row["position"],
+            stage_changed_at=row["stage_changed_at"],
+        )
+
+    def _log(self, conn, lead_id: int, kind: str, detail: dict | None = None) -> None:
+        conn.execute(
+            "INSERT INTO events (lead_id, at, kind, detail) VALUES (?, ?, ?, ?)",
+            (lead_id, _now(), kind, json.dumps(detail or {})),
         )
 
     def add(
@@ -133,15 +219,19 @@ class Store:
         latency_ms: float | None = None,
         error: str | None = None,
     ) -> LeadRecord:
+        now = _now()
         with self._conn() as conn:
+            # New cards go on top of the first column.
+            top = conn.execute("SELECT MIN(position) FROM leads WHERE stage = 'new'").fetchone()[0]
             cur = conn.execute(
                 """INSERT INTO leads (text, received_at, created_at, extracted, raw_extracted,
-                   model, prompt_version, cost_usd, latency_ms, error)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   model, prompt_version, cost_usd, latency_ms, error,
+                   stage, position, stage_changed_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)""",
                 (
                     text,
                     received_at.isoformat(),
-                    datetime.now(UTC).isoformat(timespec="seconds"),
+                    now,
                     extracted.model_dump_json() if extracted else None,
                     raw_extracted.model_dump_json() if raw_extracted else None,
                     model,
@@ -149,9 +239,12 @@ class Store:
                     cost_usd,
                     latency_ms,
                     error,
+                    (top - 1) if top is not None else 0,
+                    now,
                 ),
             )
             lead_id = cur.lastrowid
+            self._log(conn, lead_id, "created")
         return self.get(lead_id)
 
     def get(self, lead_id: int) -> LeadRecord | None:
@@ -159,12 +252,12 @@ class Store:
             row = conn.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
         return self._record(row) if row else None
 
-    def list(self, status: str | None = None) -> list[LeadRecord]:
+    def list_leads(self, status: str | None = None) -> list[LeadRecord]:
         query, params = "SELECT * FROM leads", ()
         if status:
             query, params = query + " WHERE status = ?", (status,)
         with self._conn() as conn:
-            rows = conn.execute(query + " ORDER BY id DESC", params).fetchall()
+            rows = conn.execute(query + " ORDER BY position, id DESC", params).fetchall()
         return [self._record(r) for r in rows]
 
     def approve(self, lead_id: int, lead: Lead) -> LeadRecord | None:
@@ -181,4 +274,46 @@ class Store:
                 "WHERE id = ?",
                 (lead.model_dump_json(), json.dumps(edited), lead_id),
             )
+            self._log(conn, lead_id, "approved", {"edited_fields": edited})
         return self.get(lead_id)
+
+    def stages(self) -> list[Stage]:
+        with self._conn() as conn:
+            rows = conn.execute("SELECT * FROM stages ORDER BY position").fetchall()
+        return [Stage(r["key"], r["name"], r["position"], bool(r["closed"])) for r in rows]
+
+    def move(self, lead_id: int, stage: str, index: int) -> LeadRecord | None:
+        """Put a card at `index` in the `stage` column and renumber that column."""
+        if stage not in {s.key for s in self.stages()}:
+            raise ValueError(f"unknown stage: {stage}")
+        record = self.get(lead_id)
+        if record is None:
+            return None
+        with self._conn() as conn:
+            others = [
+                r["id"]
+                for r in conn.execute(
+                    "SELECT id FROM leads WHERE stage = ? AND id != ? ORDER BY position, id DESC",
+                    (stage, lead_id),
+                )
+            ]
+            index = max(0, min(index, len(others)))
+            ordered = others[:index] + [lead_id] + others[index:]
+            conn.executemany(
+                "UPDATE leads SET position = ? WHERE id = ?",
+                [(i, card) for i, card in enumerate(ordered)],
+            )
+            if stage != record.stage:
+                conn.execute(
+                    "UPDATE leads SET stage = ?, stage_changed_at = ? WHERE id = ?",
+                    (stage, _now(), lead_id),
+                )
+                self._log(conn, lead_id, "moved", {"from": record.stage, "to": stage})
+        return self.get(lead_id)
+
+    def events(self, lead_id: int) -> list[Event]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT at, kind, detail FROM events WHERE lead_id = ? ORDER BY id", (lead_id,)
+            ).fetchall()
+        return [Event(r["at"], r["kind"], json.loads(r["detail"] or "{}")) for r in rows]

@@ -1,9 +1,9 @@
-"""HTTP API and dashboard for the approval flow.
+"""HTTP API and job board.
 
     uv run uvicorn foreman.api:create_app --factory --reload
 
-The dashboard is at http://localhost:8000 and the API docs at /docs. Login
-settings come from the environment (see auth.py).
+The board is at http://localhost:8000 (built from web/), the API under /api,
+and the API docs at /docs. Login settings come from the environment (see auth.py).
 """
 
 import json
@@ -16,7 +16,14 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+)
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -33,8 +40,11 @@ from foreman.schema import Lead
 from foreman.store import DEFAULT_DB, REVIEW_FIELDS, LeadRecord, Store
 
 STATIC = Path(__file__).parent / "static"
+# The React build (web/ -> npm run build) lands here. Gitignored.
+BOARD = STATIC / "app"
 
-router = APIRouter()
+router = APIRouter()  # pages, login, health
+api = APIRouter(prefix="/api")  # data
 
 
 @lru_cache
@@ -69,6 +79,9 @@ class LeadOut(BaseModel):
     cost_usd: float | None
     latency_ms: float | None
     error: str | None
+    stage: str
+    position: float
+    stage_changed_at: str | None
 
     @classmethod
     def from_record(cls, r: LeadRecord) -> "LeadOut":
@@ -76,8 +89,11 @@ class LeadOut(BaseModel):
 
 
 @router.get("/", include_in_schema=False)
-def dashboard():
-    return FileResponse(STATIC / "index.html")
+def board():
+    index = BOARD / "index.html"
+    if not index.exists():
+        return HTMLResponse("Board not built yet. Run: cd web && npm install && npm run build")
+    return FileResponse(index)
 
 
 class LoginIn(BaseModel):
@@ -115,7 +131,7 @@ def health():
     return {"ok": True}
 
 
-@router.post("/leads", response_model=LeadOut, status_code=201)
+@api.post("/leads", response_model=LeadOut, status_code=201)
 def create_lead(body: LeadIn, store: StoreDep, run: ExtractorDep):
     received_at = body.received_at or date.today()
     try:
@@ -138,12 +154,12 @@ def create_lead(body: LeadIn, store: StoreDep, run: ExtractorDep):
     return LeadOut.from_record(record)
 
 
-@router.get("/leads", response_model=list[LeadOut])
+@api.get("/leads", response_model=list[LeadOut])
 def list_leads(store: StoreDep, status: str | None = None):
-    return [LeadOut.from_record(r) for r in store.list(status)]
+    return [LeadOut.from_record(r) for r in store.list_leads(status)]
 
 
-@router.get("/leads/{lead_id}", response_model=LeadOut)
+@api.get("/leads/{lead_id}", response_model=LeadOut)
 def get_lead(lead_id: int, store: StoreDep):
     record = store.get(lead_id)
     if record is None:
@@ -151,7 +167,7 @@ def get_lead(lead_id: int, store: StoreDep):
     return LeadOut.from_record(record)
 
 
-@router.post("/leads/{lead_id}/approve", response_model=LeadOut)
+@api.post("/leads/{lead_id}/approve", response_model=LeadOut)
 def approve_lead(lead_id: int, lead: Lead, store: StoreDep):
     """Send the lead as it should be. Any field that differs from the extraction
     is recorded as an edit; sending it back unchanged means the model got it right."""
@@ -161,9 +177,50 @@ def approve_lead(lead_id: int, lead: Lead, store: StoreDep):
     return LeadOut.from_record(record)
 
 
-@router.get("/stats")
+class StageOut(BaseModel):
+    key: str
+    name: str
+    position: int
+    closed: bool
+
+
+class MoveIn(BaseModel):
+    stage: str
+    index: int = Field(ge=0, description="Position in the column, 0 = top.")
+
+
+class EventOut(BaseModel):
+    at: str
+    kind: str
+    detail: dict
+
+
+@api.get("/stages", response_model=list[StageOut])
+def list_stages(store: StoreDep):
+    return [StageOut(**vars(s)) for s in store.stages()]
+
+
+@api.post("/leads/{lead_id}/move", response_model=LeadOut)
+def move_lead(lead_id: int, body: MoveIn, store: StoreDep):
+    try:
+        record = store.move(lead_id, body.stage, body.index)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    if record is None:
+        raise HTTPException(404, "lead not found")
+    return LeadOut.from_record(record)
+
+
+@api.get("/leads/{lead_id}/events", response_model=list[EventOut])
+def lead_events(lead_id: int, store: StoreDep):
+    if store.get(lead_id) is None:
+        raise HTTPException(404, "lead not found")
+    return [EventOut(**vars(e)) for e in store.events(lead_id)]
+
+
+@api.get("/stats")
 def stats(store: StoreDep):
-    records = store.list()
+    records = store.list_leads()
     approved = [r for r in records if r.status == "approved"]
     edits = Counter(f for r in approved for f in (r.edited_fields or []))
     untouched = sum(1 for r in approved if not r.edited_fields)
@@ -184,12 +241,12 @@ def stats(store: StoreDep):
     }
 
 
-@router.get("/export", response_class=PlainTextResponse)
+@api.get("/export", response_class=PlainTextResponse)
 def export(store: StoreDep):
     """Approved leads in the eval dataset format, one JSON object per line. Save
     to eval/data/real.jsonl (gitignored) and run the eval on it with --data."""
     lines = []
-    for r in reversed(store.list("approved")):
+    for r in reversed(store.list_leads("approved")):
         row = {
             "id": f"real-{r.id:04d}",
             "source": "dashboard",
@@ -219,6 +276,9 @@ def create_app(auth: AuthSettings | None = None) -> FastAPI:
     app.state.auth = auth
     app.state.limiter = LoginLimiter()
     app.include_router(router)
+    app.include_router(api)
+    if (BOARD / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=BOARD / "assets"), name="assets")
 
     @app.middleware("http")
     async def require_login(request: Request, call_next):
