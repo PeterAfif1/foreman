@@ -77,3 +77,27 @@ What the ablations showed:
 - Results were identical across runs at temperature 0 for every config, so these are real differences, not noise.
 
 Takeaway: two of the remaining failures are things code does better than a model. Date math is a subtraction, and "is this name just the email's local part" is a string check. The next step is moving them out of the prompt: have the model extract the deadline as a date and compute `soon` in code, and check names against the email in code.
+
+## v3 review
+
+v3 moves the two things models did badly into code (`foreman/rules.py`):
+- The model extracts a `deadline` as a date. Code sets `soon` if it's within 60 days of `received_at`, and clears `soon` if it's further out or already past.
+- `customer_name` has to appear in the message, outside any email address. If it doesn't, it moves to `name_hint`.
+
+3 runs, 18 leads, identical every run:
+
+| | Accuracy | Hallucination | Omission |
+|---|---|---|---|
+| v1 | 96.6% | 6.0% | 1.4% |
+| v3, model output only | 95.0% | 8.0% | |
+| **v3, with rules** | **97.5%** | **2.0%** | 2.9% |
+
+Fixed: names copied from emails (gen-010, gen-015), the June 2027 wedding (gen-012, the model gave 2027-06-01 and code cleared `soon`).
+
+Still wrong:
+- **gen-003** "before we move in": no date, so the rule can't help. Model says null.
+- **gen-008** "budget is flexible" read as timing again. v1 had fixed this; the reworded urgency rule brought it back.
+- **gen-016** "nothing urgent" not read as `flexible`. New miss.
+- **gen-013** `name_hint` "mellison" from mellison@gmail.com when the full name was signed. Hint only, not in totals. A code rule could drop hints that just repeat customer_name.
+
+Next: these are wording problems in the urgency rule, each from one example. Write more urgency examples (open timing in different words, money words that sound like timing) before touching the prompt again.
