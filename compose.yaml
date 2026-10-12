@@ -1,0 +1,12 @@
+# Local run of the production image: docker compose up --build
+services:
+  foreman:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      # Plain http on your own machine. Leave secure cookies on anywhere real.
+      FOREMAN_SECURE_COOKIES: "off"
+    volumes:
+      - ./data:/app/data
