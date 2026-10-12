@@ -63,10 +63,16 @@ uv run pytest             # no API calls
 uv run python -m eval.run_eval --label test
 ```
 
-Or run the dashboard at http://localhost:8000 (API docs at `/docs`):
+Or run the dashboard at http://localhost:8000 (API docs at `/docs`). It needs a password and a secret key in `.env` (see `.env.example`):
 
 ```bash
-uv run uvicorn foreman.api:app --reload
+uv run uvicorn foreman.api:create_app --factory --reload
+```
+
+Or the production image:
+
+```bash
+docker compose up --build
 ```
 
 Paste a message, check what was pulled out, fix anything wrong and approve. Every fix is recorded. `/stats` shows how often each field needed fixing on real messages, and `/export` turns approved leads into eval data (gitignored, never committed).
@@ -74,6 +80,6 @@ Paste a message, check what was pulled out, fix anything wrong and approve. Ever
 ## Next
 
 - Real leads from the business (anonymized, never committed)
-- Deploy, tracing, then RAG over past quotes for rough estimates
+- Deploy so it works from a phone, then tracing, then RAG over past quotes for rough estimates
 
 MIT license
