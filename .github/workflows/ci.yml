@@ -16,6 +16,15 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run pytest -q
 
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t foreman .
+      # The image must refuse to start without a password.
+      - run: |
+          if docker run --rm foreman; then echo "started without a password"; exit 1; fi
+
   # Costs real API calls and results vary run to run, so it only runs on main or
   # by hand, and it reports instead of gating. The score gate comes once the
   # dataset is big enough for one flipped field not to swing the number.
