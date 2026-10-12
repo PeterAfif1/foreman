@@ -20,3 +20,7 @@ eval/data/private/
 .DS_Store
 .vscode/
 .idea/
+
+# Local database with real leads
+data/
+*.db
