@@ -57,3 +57,23 @@ Open for v2:
 - **gen-003:** the "timing only" rule made the model stricter, so an implied deadline now reads as no timing. It's a trade between the two urgency failures.
 - **gen-010:** decide whether a name inside an email address counts. If not, the prompt needs a rule. If yes, relabel it. Either way it's a labeling decision first.
 - Both are single examples. Writing a few more leads for each case before tuning again would avoid fitting the prompt to one message.
+
+## v2 review
+
+18 leads, 3 runs per row. v2 added `name_hint`, the received date in each message, a 60-day rule for `soon`, and a rule that names come only from what the person wrote.
+
+| Run | Accuracy | Hallucination | Name hint | Cost / lead |
+|---|---|---|---|---|
+| v1, gpt-4o-mini | **96.6%** | **6.0%** | n/a | $0.00016 |
+| v2, gpt-4o-mini | 93.3% | 12.0% | 88.2% | $0.0002 |
+| v2 with date removed (ablation) | 93.3% | 14.0% | 82 to 88% | |
+| v2 with a one-line name rule (ablation) | 95.8% | 8.0% | 94.1% | |
+| v2, gpt-4o | 92.4% | 4.0% | 94.1% | $0.0032 |
+
+What the ablations showed:
+- **The long name rule caused the regression,** not the date. With it, gpt-4o-mini put greetings and phrases in `customer_name` ("hi", "Our daughter's wedding"). A one-line rule removed those.
+- **gpt-4o-mini still copies the start of an email address into `customer_name`** ("carlos", "jenny") even when told not to. gpt-4o doesn't (100% on names) but misses more urgency and job types, and costs 16x more.
+- **Neither model does the 60-day math reliably.** Both call a June 2027 wedding `soon` with the received date right in the message.
+- Results were identical across runs at temperature 0 for every config, so these are real differences, not noise.
+
+Takeaway: two of the remaining failures are things code does better than a model. Date math is a subtraction, and "is this name just the email's local part" is a string check. The next step is moving them out of the prompt: have the model extract the deadline as a date and compute `soon` in code, and check names against the email in code.
