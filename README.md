@@ -63,18 +63,17 @@ uv run pytest             # no API calls
 uv run python -m eval.run_eval --label test
 ```
 
-Or run the API and try it at http://localhost:8000/docs:
+Or run the dashboard at http://localhost:8000 (API docs at `/docs`):
 
 ```bash
 uv run uvicorn foreman.api:app --reload
 ```
 
-Leads go in as `pending`, get approved as-is or with fixes, and every fix is recorded. `/stats` shows how often each field needed fixing on real messages, and `/export` turns approved leads into eval data (gitignored, never committed).
+Paste a message, check what was pulled out, fix anything wrong and approve. Every fix is recorded. `/stats` shows how often each field needed fixing on real messages, and `/export` turns approved leads into eval data (gitignored, never committed).
 
 ## Next
 
 - Real leads from the business (anonymized, never committed)
-- Approval dashboard where my corrections become new labels
 - Deploy, tracing, then RAG over past quotes for rough estimates
 
 MIT license
