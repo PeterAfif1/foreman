@@ -1,7 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from foreman.api import app, get_extractor, get_store
+from foreman.api import create_app, get_extractor, get_store
+from foreman.auth import AuthSettings, load_settings
 from foreman.extract import Extraction
 from foreman.schema import Lead
 from foreman.store import Store
@@ -23,13 +24,27 @@ def fake_extract(text, received_at=None):
     )
 
 
-@pytest.fixture
-def client(tmp_path):
+PASSWORD = "correct horse battery"
+
+
+def make_client(tmp_path, auth):
+    app = create_app(auth)
     store = Store(tmp_path / "test.db")
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_extractor] = lambda: fake_extract
-    yield TestClient(app)
-    app.dependency_overrides.clear()
+    return TestClient(app)
+
+
+@pytest.fixture
+def client(tmp_path):
+    return make_client(tmp_path, AuthSettings(enabled=False))
+
+
+@pytest.fixture
+def secured(tmp_path):
+    return make_client(
+        tmp_path, AuthSettings(enabled=True, password=PASSWORD, secret_key="test-key")
+    )
 
 
 def test_create_extracts_and_saves_pending(client):
@@ -120,3 +135,65 @@ def test_dashboard_is_served(client):
     r = client.get("/")
     assert r.status_code == 200
     assert "<title>Foreman</title>" in r.text
+
+
+def test_everything_needs_login(secured):
+    assert secured.get("/leads").status_code == 401
+    assert secured.post("/leads", json={"text": "x"}).status_code == 401
+    assert secured.get("/export").status_code == 401
+    assert secured.get("/docs").status_code == 401
+    page = secured.get("/", headers={"accept": "text/html"}, follow_redirects=False)
+    assert page.status_code == 303
+    assert page.headers["location"] == "/login"
+
+
+def test_login_page_and_health_are_public(secured):
+    assert secured.get("/login").status_code == 200
+    assert secured.get("/health").status_code == 200
+
+
+def test_wrong_password_is_rejected(secured):
+    assert secured.post("/login", json={"password": "nope"}).status_code == 401
+    assert secured.get("/leads").status_code == 401
+
+
+def test_right_password_opens_everything(secured):
+    assert secured.post("/login", json={"password": PASSWORD}).status_code == 200
+    assert secured.get("/leads").status_code == 200
+    assert secured.post("/leads", json={"text": "x"}).status_code == 201
+
+
+def test_logout_ends_the_session(secured):
+    secured.post("/login", json={"password": PASSWORD})
+    secured.post("/logout")
+    assert secured.get("/leads").status_code == 401
+
+
+def test_lockout_after_too_many_wrong_passwords(secured):
+    for _ in range(5):
+        secured.post("/login", json={"password": "nope"})
+    # Even the right password is refused while locked out.
+    assert secured.post("/login", json={"password": PASSWORD}).status_code == 429
+
+
+def test_startup_fails_without_a_password(monkeypatch):
+    monkeypatch.setattr("foreman.auth.load_dotenv", lambda: None)  # ignore the real .env
+    for var in ["FOREMAN_AUTH", "FOREMAN_PASSWORD", "FOREMAN_SECRET_KEY"]:
+        monkeypatch.delenv(var, raising=False)
+    with pytest.raises(RuntimeError, match="FOREMAN_PASSWORD"):
+        load_settings()
+
+
+def test_short_password_is_refused(monkeypatch):
+    monkeypatch.setattr("foreman.auth.load_dotenv", lambda: None)  # ignore the real .env
+    monkeypatch.setenv("FOREMAN_PASSWORD", "short")
+    monkeypatch.setenv("FOREMAN_SECRET_KEY", "k")
+    monkeypatch.delenv("FOREMAN_AUTH", raising=False)
+    with pytest.raises(RuntimeError, match="12 characters"):
+        load_settings()
+
+
+def test_auth_off_must_be_explicit(monkeypatch):
+    monkeypatch.setattr("foreman.auth.load_dotenv", lambda: None)  # ignore the real .env
+    monkeypatch.setenv("FOREMAN_AUTH", "off")
+    assert load_settings().enabled is False

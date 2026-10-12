@@ -1,8 +1,9 @@
 """HTTP API and dashboard for the approval flow.
 
-    uv run uvicorn foreman.api:app --reload
+    uv run uvicorn foreman.api:create_app --factory --reload
 
-The dashboard is at http://localhost:8000 and the API docs at /docs.
+The dashboard is at http://localhost:8000 and the API docs at /docs. Login
+settings come from the environment (see auth.py).
 """
 
 import json
@@ -13,17 +14,26 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from pydantic import BaseModel, Field
+from starlette.middleware.sessions import SessionMiddleware
 
+from foreman.auth import (
+    PUBLIC_PATHS,
+    SESSION_DAYS,
+    AuthSettings,
+    LoginLimiter,
+    load_settings,
+    password_matches,
+)
 from foreman.extract import extract
 from foreman.schema import Lead
 from foreman.store import DEFAULT_DB, REVIEW_FIELDS, LeadRecord, Store
 
-app = FastAPI(title="Foreman", description="Lead intake with human approval.")
+STATIC = Path(__file__).parent / "static"
 
-DASHBOARD = Path(__file__).parent / "static" / "index.html"
+router = APIRouter()
 
 
 @lru_cache
@@ -64,17 +74,47 @@ class LeadOut(BaseModel):
         return cls(**{name: getattr(r, name) for name in cls.model_fields})
 
 
-@app.get("/", include_in_schema=False)
+@router.get("/", include_in_schema=False)
 def dashboard():
-    return FileResponse(DASHBOARD)
+    return FileResponse(STATIC / "index.html")
 
 
-@app.get("/health")
+class LoginIn(BaseModel):
+    password: str
+
+
+@router.get("/login", include_in_schema=False)
+def login_page():
+    return FileResponse(STATIC / "login.html")
+
+
+@router.post("/login", include_in_schema=False)
+def login(body: LoginIn, request: Request):
+    settings: AuthSettings = request.app.state.auth
+    limiter: LoginLimiter = request.app.state.limiter
+    who = request.client.host if request.client else "unknown"
+    if limiter.locked(who):
+        raise HTTPException(429, "too many attempts")
+    if not settings.enabled or password_matches(body.password, settings.password):
+        limiter.reset(who)
+        request.session["user"] = "reviewer"
+        return {"ok": True}
+    limiter.fail(who)
+    raise HTTPException(401, "wrong password")
+
+
+@router.post("/logout", include_in_schema=False)
+def logout(request: Request):
+    request.session.clear()
+    return {"ok": True}
+
+
+@router.get("/health")
 def health():
     return {"ok": True}
 
 
-@app.post("/leads", response_model=LeadOut, status_code=201)
+@router.post("/leads", response_model=LeadOut, status_code=201)
 def create_lead(body: LeadIn, store: StoreDep, run: ExtractorDep):
     received_at = body.received_at or date.today()
     try:
@@ -97,12 +137,12 @@ def create_lead(body: LeadIn, store: StoreDep, run: ExtractorDep):
     return LeadOut.from_record(record)
 
 
-@app.get("/leads", response_model=list[LeadOut])
+@router.get("/leads", response_model=list[LeadOut])
 def list_leads(store: StoreDep, status: str | None = None):
     return [LeadOut.from_record(r) for r in store.list(status)]
 
 
-@app.get("/leads/{lead_id}", response_model=LeadOut)
+@router.get("/leads/{lead_id}", response_model=LeadOut)
 def get_lead(lead_id: int, store: StoreDep):
     record = store.get(lead_id)
     if record is None:
@@ -110,7 +150,7 @@ def get_lead(lead_id: int, store: StoreDep):
     return LeadOut.from_record(record)
 
 
-@app.post("/leads/{lead_id}/approve", response_model=LeadOut)
+@router.post("/leads/{lead_id}/approve", response_model=LeadOut)
 def approve_lead(lead_id: int, lead: Lead, store: StoreDep):
     """Send the lead as it should be. Any field that differs from the extraction
     is recorded as an edit; sending it back unchanged means the model got it right."""
@@ -120,7 +160,7 @@ def approve_lead(lead_id: int, lead: Lead, store: StoreDep):
     return LeadOut.from_record(record)
 
 
-@app.get("/stats")
+@router.get("/stats")
 def stats(store: StoreDep):
     records = store.list()
     approved = [r for r in records if r.status == "approved"]
@@ -143,7 +183,7 @@ def stats(store: StoreDep):
     }
 
 
-@app.get("/export", response_class=PlainTextResponse)
+@router.get("/export", response_class=PlainTextResponse)
 def export(store: StoreDep):
     """Approved leads in the eval dataset format, one JSON object per line. Save
     to eval/data/real.jsonl (gitignored) and run the eval on it with --data."""
@@ -159,3 +199,30 @@ def export(store: StoreDep):
         }
         lines.append(json.dumps(row))
     return "\n".join(lines) + ("\n" if lines else "")
+
+
+def create_app(auth: AuthSettings | None = None) -> FastAPI:
+    auth = auth or load_settings()
+    app = FastAPI(title="Foreman", description="Lead intake with human approval.")
+    app.state.auth = auth
+    app.state.limiter = LoginLimiter()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def require_login(request: Request, call_next):
+        if not auth.enabled or request.url.path in PUBLIC_PATHS or request.session.get("user"):
+            return await call_next(request)
+        if request.method == "GET" and "text/html" in request.headers.get("accept", ""):
+            return RedirectResponse("/login", status_code=303)
+        return JSONResponse({"detail": "login required"}, status_code=401)
+
+    # Added last so it runs first and request.session is ready for require_login.
+    # Signed cookie, unreadable by page scripts, not sent on cross-site requests.
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=auth.secret_key,
+        max_age=SESSION_DAYS * 24 * 3600,
+        same_site="lax",
+        https_only=auth.secure_cookies,
+    )
+    return app

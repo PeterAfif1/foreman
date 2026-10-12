@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foreman: sign in</title>
+<style>
+  :root { --bg: #f6f5f2; --panel: #fff; --text: #1d1d1b; --muted: #6b6a66; --line: #e3e1db;
+    --accent: #c2410c; --accent-ink: #fff; --bad: #b91c1c; --focus: #2563eb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161614; --panel: #201f1d; --text: #ecebe7; --muted: #a3a19b; --line: #34332f;
+      --accent: #f97316; --accent-ink: #1a1a1a; --bad: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+    background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  form { width: 100%; max-width: 340px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 24px; }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  p { margin: 0 0 18px; color: var(--muted); }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  input { width: 100%; font: inherit; color: var(--text); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+  input:focus, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  button { width: 100%; margin-top: 14px; font: inherit; font-weight: 600; padding: 10px;
+    border-radius: 6px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  button:disabled { opacity: .6; }
+  #error { color: var(--bad); font-size: 14px; margin-top: 10px; min-height: 1.2em; }
+</style>
+</head>
+<body>
+<form id="login">
+  <h1>Foreman</h1>
+  <p>Sign in to review leads.</p>
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password" required autofocus>
+  <button type="submit">Sign in</button>
+  <div id="error" role="alert"></div>
+</form>
+<script>
+document.getElementById("login").onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector("button"), err = document.getElementById("error");
+  btn.disabled = true; err.textContent = "";
+  try {
+    const r = await fetch("/login", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: document.getElementById("password").value }) });
+    if (r.ok) { location.href = "/"; return; }
+    err.textContent = r.status === 429 ? "Too many tries. Wait 15 minutes." : "Wrong password.";
+  } catch { err.textContent = "Couldn't reach the server."; }
+  btn.disabled = false;
+};
+</script>
+</body>
+</html>
