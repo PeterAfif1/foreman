@@ -101,6 +101,9 @@ def main() -> None:
             pred = Lead(is_lead=False)
             record["error"] = f"{type(e).__name__}: {e}"
         record["pred"] = pred.model_dump()
+        if "error" not in record:
+            # Keep the model's own answer too, to measure what the rules change.
+            record["raw_pred"] = result.raw_lead.model_dump()
         record["outcomes"] = score_example(pred, truth)
         examples.append(record)
         pairs.append((pred, truth))

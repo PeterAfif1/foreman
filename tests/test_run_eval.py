@@ -30,7 +30,16 @@ def test_run_eval_end_to_end(tmp_path, monkeypatch):
         if text == "buy SEO":
             raise RuntimeError("boom")
         lead = Lead(is_lead=True, job_types=["roofing"], budget_max=9000)
-        return Extraction(lead, "gpt-4o-mini", "v0", 100, 50, 0.0001, 120.0)
+        return Extraction(
+            lead=lead,
+            raw_lead=lead,
+            model="gpt-4o-mini",
+            prompt_version="v0",
+            input_tokens=100,
+            output_tokens=50,
+            cost_usd=0.0001,
+            latency_ms=120.0,
+        )
 
     monkeypatch.setattr(run_eval, "extract", fake_extract)
     monkeypatch.setattr(run_eval, "RESULTS_DIR", tmp_path / "results")

@@ -58,6 +58,11 @@ class Lead(BaseModel):
     budget_max: int | None = Field(
         default=None, description="Upper budget bound in dollars, only if stated. Never guess."
     )
+    deadline: str | None = Field(
+        default=None,
+        description="Date of a deadline they mention, as YYYY-MM-DD, worked out from the "
+        "received date. Use the first of the month if only a month is given. Null if none.",
+    )
     urgency: Urgency | None = Field(
         default=None, description="Null unless the message signals timing."
     )

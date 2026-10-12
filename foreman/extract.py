@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from foreman.prompts import PROMPT_VERSION, SYSTEM_PROMPT
+from foreman.rules import apply_rules
 from foreman.schema import Lead
 
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -23,7 +24,8 @@ PRICING = {
 
 @dataclass
 class Extraction:
-    lead: Lead
+    lead: Lead  # after the rules in rules.py
+    raw_lead: Lead  # exactly what the model returned
     model: str
     prompt_version: str
     input_tokens: int
@@ -80,11 +82,17 @@ def extract(
     if message.parsed is None:
         raise ExtractionError(message.refusal or "model returned no parsed output")
 
+    if isinstance(received_at, str):
+        received_at = date.fromisoformat(received_at)
+    raw_lead = message.parsed
+    lead = apply_rules(raw_lead, text, received_at)
+
     usage = completion.usage
     input_tokens = usage.prompt_tokens if usage else 0
     output_tokens = usage.completion_tokens if usage else 0
     return Extraction(
-        lead=message.parsed,
+        lead=lead,
+        raw_lead=raw_lead,
         model=model,
         prompt_version=PROMPT_VERSION,
         input_tokens=input_tokens,
