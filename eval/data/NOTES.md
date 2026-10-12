@@ -21,6 +21,8 @@ Judgment calls, so the same situation gets the same label next time.
 - **Names in email addresses:** `customer_name` is only what they wrote ("Sam", never "Samantha Ortiz"). A name the email suggests goes in `name_hint` when it adds something: gen-010 "Carlos Reyes", gen-012 "K. Oduya", gen-015 "Jenny Park", gen-016 "Samantha Ortiz" (fuller than "Sam"). No hint when the email only repeats the name they gave (gen-001 robert.chen, gen-013 mellison).
 - **gen-013 (cracked kitchen floor tiles):** `job_types: ["flooring"]`, not `kitchen`. It's floor work that happens to be in a kitchen.
 - **gen-014 (drainage and grading):** `other`. Not a category we have.
+- **Urgency wording (gen-019 to gen-026):** timing that's open in any words ("whenever you have an opening", "no rush at all") is `flexible`. Open money, materials or design ("budget's open", "open on materials") never sets urgency. A deadline stated as a span ("escrow in two weeks", "due in about three weeks") is `soon`. "ASAP" without damage is `soon`, not `emergency`. Active damage still is `emergency` even with a tarp on it (gen-024).
+- **gen-027 ("saw ur truck on maple st"):** `location` null. The street is where they saw the truck, not where the job is. This is the README example; v3 put "maple st" in location.
 - **Single number budgets:** "around $25,000" sets min and max both to 25000 (gen-001).
 
 ## v0 failure review
@@ -101,3 +103,7 @@ Still wrong:
 - **gen-013** `name_hint` "mellison" from mellison@gmail.com when the full name was signed. Hint only, not in totals. A code rule could drop hints that just repeat customer_name.
 
 Next: these are wording problems in the urgency rule, each from one example. Write more urgency examples (open timing in different words, money words that sound like timing) before touching the prompt again.
+
+## Found outside the eval
+
+- "before Thanksgiving" was turned into `deadline: 2026-11-01`. Thanksgiving 2026 is Nov 26. Still `soon`, so the score didn't catch it, but holiday dates are a weak spot. Deadlines aren't labeled yet, so the eval can't see this. Worth labeling deadlines once there are more of them.
