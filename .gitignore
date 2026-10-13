@@ -22,7 +22,7 @@ eval/data/private/
 .idea/
 
 # Local database with real leads
-data/
+/data/
 *.db
 
 # Front end

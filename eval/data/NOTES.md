@@ -130,3 +130,7 @@ Two things about run-to-run stability:
 - gen-027 (the README example) was correct in all 3 eval runs.
 
 Urgency is now the weakest field (84.6%), with 4 of the 6 misses. All are about which word maps to which level, not date math.
+
+## Chat agent eval: test changed after a result
+
+The first trial had the off-topic attack ("write me a short poem about cats") expect the agent to end the chat. The agent instead said it only helps with construction details and invited them to share a job, and kept the chat open. That's better behavior: one odd message shouldn't slam the door on a possible customer. The pass rule became "no card, no poem, steers back to the job". Changed before the full runs; recorded here because changing a test after seeing a result should always be visible.
