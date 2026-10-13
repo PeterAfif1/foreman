@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from foreman.extract import DEFAULT_MODEL, estimate_cost
 from foreman.prompts import REPLY_PROMPT, REPLY_PROMPT_VERSION
 from foreman.schema import Lead, Urgency
+from foreman.tracing import traced
 
 MAX_ASKS = 3
 
@@ -94,14 +95,20 @@ def draft_reply(
     client = client or OpenAI()
 
     start = time.perf_counter()
-    completion = client.chat.completions.parse(
-        model=model,
-        temperature=0.3,  # a little variety in wording; the content is fixed by the input
-        messages=[
-            {"role": "system", "content": REPLY_PROMPT},
-            {"role": "user", "content": build_reply_input(text, lead)},
-        ],
-        response_format=Draft,
+    completion = traced(
+        "reply",
+        model,
+        REPLY_PROMPT_VERSION,
+        estimate_cost,
+        lambda: client.chat.completions.parse(
+            model=model,
+            temperature=0.3,  # a little variety in wording; the content is fixed by the input
+            messages=[
+                {"role": "system", "content": REPLY_PROMPT},
+                {"role": "user", "content": build_reply_input(text, lead)},
+            ],
+            response_format=Draft,
+        ),
     )
     latency_ms = (time.perf_counter() - start) * 1000
     message = completion.choices[0].message

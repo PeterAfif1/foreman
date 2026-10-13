@@ -18,8 +18,12 @@ from foreman.store import Store
 
 
 def fake_extract(text, received_at=None):
+    from foreman import tracing
+
     if text == "boom":
+        tracing.record("extract", "gpt-4o-mini", "v3", 30000.0, error="RuntimeError: model down")
         raise RuntimeError("model down")
+    tracing.record("extract", "gpt-4o-mini", "v3", 900.0, 500, 80, 0.0002)
     lead = Lead(is_lead=True, customer_name="dana", job_types=["kitchen"], budget_max=30000)
     return Extraction(
         lead=lead,
@@ -50,10 +54,12 @@ def fake_reply(text, lead):
 
 def fake_agent(state, message, today):
     """Pretends to be the chat agent: the job on the first message, then contact."""
+    from foreman import tracing
     from foreman.agent import Turn
 
     if message == "crash":
         raise RuntimeError("model down")
+    tracing.record("chat", "gpt-4o-mini", "a4", 1000.0, 600, 40, 0.0001)
     state.customer_turns += 1
     state.messages.append({"role": "user", "content": message})
     if state.customer_turns == 1:
@@ -71,8 +77,11 @@ PASSWORD = "correct horse battery"
 
 
 def make_client(tmp_path, auth):
+    from foreman import tracing
+
     app = create_app(auth)
     store = Store(tmp_path / "test.db")
+    tracing.set_sink(store)
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_extractor] = lambda: fake_extract
     app.dependency_overrides[get_replier] = lambda: fake_reply
@@ -531,3 +540,37 @@ def test_rate_limiter_window():
     assert not limiter.allow("a", now=2)
     assert limiter.allow("b", now=2)  # per key
     assert limiter.allow("a", now=10.5)  # the first one expired
+
+
+def test_ai_calls_are_linked_to_the_card(client):
+    lead = client.post("/api/leads", json={"text": "kitchen"}).json()
+    [call] = client.get(f"/api/leads/{lead['id']}/calls").json()
+    assert call["feature"] == "extract" and call["ok"] is True
+    assert call["cost_usd"] == 0.0002
+
+
+def test_failed_extraction_is_traced_and_linked(client):
+    lead = client.post("/api/leads", json={"text": "boom"}).json()
+    [call] = client.get(f"/api/leads/{lead['id']}/calls").json()
+    assert call["ok"] is False and "model down" in call["error"]
+
+
+def test_every_chat_call_links_to_the_card(client):
+    chat_id = client.post("/public/chat", json={"message": "roof"}).json()["chat_id"]
+    client.post("/public/chat", json={"chat_id": chat_id, "message": "818-555-0101"})
+    [card] = client.get("/api/leads").json()
+    calls = client.get(f"/api/leads/{card['id']}/calls").json()
+    assert [c["feature"] for c in calls] == ["chat", "chat"]
+
+
+def test_usage_summary(client):
+    client.post("/api/leads", json={"text": "kitchen"})
+    client.post("/api/leads", json={"text": "boom"})
+    u = client.get("/api/usage?days=7").json()
+    assert u["total"]["calls"] == 2 and u["total"]["errors"] == 1
+    assert u["by_feature"]["extract"]["error_rate"] == 0.5
+    assert len(u["cost_by_day"]) == 7
+
+
+def test_usage_needs_login(secured):
+    assert secured.get("/api/usage").status_code == 401

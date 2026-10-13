@@ -11,6 +11,7 @@ from openai import OpenAI
 from foreman.prompts import PROMPT_VERSION, SYSTEM_PROMPT
 from foreman.rules import apply_rules
 from foreman.schema import Lead
+from foreman.tracing import traced
 
 DEFAULT_MODEL = "gpt-4o-mini"
 
@@ -67,14 +68,21 @@ def extract(
     start = time.perf_counter()
     # Structured outputs: the API constrains decoding to the Lead JSON schema,
     # so the response either parses into a Lead or comes back as a refusal.
-    completion = client.chat.completions.parse(
-        model=model,
-        temperature=0,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": build_user_message(text, received_at)},
-        ],
-        response_format=Lead,
+    completion = traced(
+        "extract",
+        model,
+        PROMPT_VERSION,
+        estimate_cost,
+        lambda: client.chat.completions.parse(
+            model=model,
+            temperature=0,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": build_user_message(text, received_at)},
+            ],
+            response_format=Lead,
+        ),
+        lambda c: {"refused": c.choices[0].message.parsed is None},
     )
     latency_ms = (time.perf_counter() - start) * 1000
 

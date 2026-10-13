@@ -58,6 +58,26 @@ CREATE TABLE IF NOT EXISTS chats (
     lead_id INTEGER REFERENCES leads(id)
 );
 
+-- One row per AI call: metadata only, never message text.
+CREATE TABLE IF NOT EXISTS ai_calls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    at TEXT NOT NULL,
+    feature TEXT NOT NULL,      -- extract | reply | chat | chat_rewrite
+    model TEXT,
+    prompt_version TEXT,
+    input_tokens INTEGER,
+    output_tokens INTEGER,
+    cost_usd REAL,
+    latency_ms REAL,
+    ok INTEGER NOT NULL,
+    error TEXT,
+    request_id TEXT,
+    chat_id TEXT,
+    lead_id INTEGER,
+    detail TEXT
+);
+CREATE INDEX IF NOT EXISTS ai_calls_at ON ai_calls(at);
+
 -- Every change to a card, oldest first. Card history and "no answer in 6 days"
 -- nudges both read from here.
 CREATE TABLE IF NOT EXISTS events (
@@ -387,6 +407,56 @@ class Store:
                 "WHERE id = ?",
                 (state_json, _now(), lead_id, chat_id),
             )
+
+    # Tracing
+
+    def record_ai_call(self, call: dict) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                """INSERT INTO ai_calls (at, feature, model, prompt_version, input_tokens,
+                   output_tokens, cost_usd, latency_ms, ok, error, request_id, chat_id, detail)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    _now(),
+                    call["feature"],
+                    call["model"],
+                    call["prompt_version"],
+                    call["input_tokens"],
+                    call["output_tokens"],
+                    call["cost_usd"],
+                    call["latency_ms"],
+                    int(call["ok"]),
+                    call["error"],
+                    call["request_id"],
+                    call["chat_id"],
+                    json.dumps(call["detail"]),
+                ),
+            )
+
+    def link_calls(self, lead_id: int, request_id: str | None = None, chat_id: str | None = None):
+        """Attach AI calls to the card they produced (a request's calls, or a whole chat's)."""
+        with self._conn() as conn:
+            if request_id:
+                conn.execute(
+                    "UPDATE ai_calls SET lead_id = ? WHERE request_id = ?", (lead_id, request_id)
+                )
+            if chat_id:
+                conn.execute(
+                    "UPDATE ai_calls SET lead_id = ? WHERE chat_id = ?", (lead_id, chat_id)
+                )
+
+    def ai_calls(self, lead_id: int | None = None, since: str | None = None) -> list[dict]:
+        query, params = "SELECT * FROM ai_calls WHERE 1=1", []
+        if lead_id is not None:
+            query, params = query + " AND lead_id = ?", [*params, lead_id]
+        if since:
+            query, params = query + " AND at >= ?", [*params, since]
+        with self._conn() as conn:
+            rows = conn.execute(query + " ORDER BY id", params).fetchall()
+        return [
+            {**dict(r), "ok": bool(r["ok"]), "detail": json.loads(r["detail"] or "{}")}
+            for r in rows
+        ]
 
     def stages(self) -> list[Stage]:
         with self._conn() as conn:

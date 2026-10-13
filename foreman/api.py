@@ -11,7 +11,7 @@ import logging
 import os
 import threading
 from collections import Counter
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
@@ -28,6 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.sessions import SessionMiddleware
 
+from foreman import tracing
 from foreman.agent import CLOSED, ChatState
 from foreman.agent import respond as agent_respond
 from foreman.auth import (
@@ -45,6 +46,7 @@ from foreman.reply import NotALead, draft_reply
 from foreman.rules import apply_rules
 from foreman.schema import Lead
 from foreman.store import DEFAULT_DB, REVIEW_FIELDS, LeadRecord, Store
+from foreman.usage import summarize
 
 STATIC = Path(__file__).parent / "static"
 # The React build (web/ -> npm run build) lands here. Gitignored.
@@ -66,7 +68,9 @@ def get_store() -> Store:
     # The board's first page load sends several requests at once. Only one of
     # them should set up (and upgrade) the database.
     with _store_lock:
-        return _open_store(str(os.getenv("FOREMAN_DB", DEFAULT_DB)))
+        store = _open_store(str(os.getenv("FOREMAN_DB", DEFAULT_DB)))
+        tracing.set_sink(store)  # AI calls get recorded in the same database
+        return store
 
 
 def get_extractor():
@@ -177,26 +181,28 @@ def health():
 @api.post("/leads", response_model=LeadOut, status_code=201)
 def create_lead(body: LeadIn, store: StoreDep, run: ExtractorDep):
     received_at = body.received_at or date.today()
-    try:
-        result = run(body.text, received_at=received_at)
-    except Exception as e:  # noqa: BLE001 - keep the lead even if the model call fails
-        # The message is still saved, so nothing a customer sent gets lost. The
-        # reviewer fills it in by hand.
-        record = store.add(
-            body.text, received_at, error=f"{type(e).__name__}: {e}", source=body.source
-        )
-        return LeadOut.from_record(record)
-    record = store.add(
-        body.text,
-        received_at,
-        extracted=result.lead,
-        raw_extracted=result.raw_lead,
-        model=result.model,
-        prompt_version=result.prompt_version,
-        cost_usd=result.cost_usd,
-        latency_ms=result.latency_ms,
-        source=body.source,
-    )
+    with tracing.request_context() as request_id:
+        try:
+            result = run(body.text, received_at=received_at)
+        except Exception as e:  # noqa: BLE001 - keep the lead even if the model call fails
+            # The message is still saved, so nothing a customer sent gets lost. The
+            # reviewer fills it in by hand.
+            record = store.add(
+                body.text, received_at, error=f"{type(e).__name__}: {e}", source=body.source
+            )
+        else:
+            record = store.add(
+                body.text,
+                received_at,
+                extracted=result.lead,
+                raw_extracted=result.raw_lead,
+                model=result.model,
+                prompt_version=result.prompt_version,
+                cost_usd=result.cost_usd,
+                latency_ms=result.latency_ms,
+                source=body.source,
+            )
+    store.link_calls(record.id, request_id=request_id)
     return LeadOut.from_record(record)
 
 
@@ -302,9 +308,11 @@ def draft(lead_id: int, store: StoreDep, write: ReplierDep):
     if fields is None:
         raise HTTPException(409, "fill in the card first")
     try:
-        d = write(record.text, fields)
+        with tracing.request_context() as request_id:
+            d = write(record.text, fields)
     except NotALead as e:
         raise HTTPException(409, str(e)) from e
+    store.link_calls(lead_id, request_id=request_id)
     store.log_draft(lead_id, d.text, d.prompt_version)
     return DraftOut(text=d.text, asks=d.asks, prompt_version=d.prompt_version, cost_usd=d.cost_usd)
 
@@ -323,6 +331,22 @@ def lead_events(lead_id: int, store: StoreDep):
     if store.get(lead_id) is None:
         raise HTTPException(404, "lead not found")
     return [EventOut(**vars(e)) for e in store.events(lead_id)]
+
+
+@api.get("/usage")
+def usage(store: StoreDep, days: int = 7):
+    """Cost, failures and latency of the AI calls over the last `days` days."""
+    days = max(1, min(days, 90))
+    since = (datetime.now(UTC) - timedelta(days=days)).isoformat(timespec="seconds")
+    return summarize(store.ai_calls(since=since), days)
+
+
+@api.get("/leads/{lead_id}/calls")
+def lead_calls(lead_id: int, store: StoreDep):
+    """Every AI call that went into this card."""
+    if store.get(lead_id) is None:
+        raise HTTPException(404, "lead not found")
+    return store.ai_calls(lead_id=lead_id)
 
 
 @api.get("/stats")
@@ -417,7 +441,8 @@ def chat(body: ChatIn, request: Request, store: StoreDep, run: AgentDep):
 
     today = date.today()
     try:
-        turn = run(state, body.message.strip(), today.isoformat())
+        with tracing.request_context(chat_id=chat_id):
+            turn = run(state, body.message.strip(), today.isoformat())
     except Exception:  # noqa: BLE001 - the customer gets a polite answer, the lead isn't lost
         logging.getLogger("foreman").exception("chat agent failed")
         store.save_chat(chat_id, state.to_json())
@@ -439,6 +464,7 @@ def chat(body: ChatIn, request: Request, store: StoreDep, run: AgentDep):
             source="chat",
         )
         lead_id = record.id
+        store.link_calls(lead_id, chat_id=chat_id)  # every model call of the chat
     store.save_chat(chat_id, state.to_json(), lead_id)
     return ChatOut(chat_id=chat_id, reply=turn.reply, done=turn.done)
 

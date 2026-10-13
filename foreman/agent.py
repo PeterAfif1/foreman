@@ -21,6 +21,7 @@ from foreman.extract import DEFAULT_MODEL, estimate_cost
 from foreman.guards import plain_punctuation, strip_unstated_names, violations
 from foreman.prompts import AGENT_PROMPT, AGENT_PROMPT_VERSION
 from foreman.schema import JobType, Lead, Urgency
+from foreman.tracing import traced
 
 MAX_CUSTOMER_TURNS = 8
 MAX_TOOL_STEPS = 4  # model calls per customer message, so one turn can't loop forever
@@ -229,12 +230,22 @@ def respond(
         )
 
     def call(extra: list[dict] | None = None, tools: bool = True):
-        completion = client.chat.completions.create(
-            model=model,
-            temperature=0.3,
-            messages=[_system(today), *state.messages, *(extra or [])],
-            tools=TOOLS,
-            tool_choice="auto" if tools else "none",
+        completion = traced(
+            "chat" if tools else "chat_rewrite",
+            model,
+            AGENT_PROMPT_VERSION,
+            estimate_cost,
+            lambda: client.chat.completions.create(
+                model=model,
+                temperature=0.3,
+                messages=[_system(today), *state.messages, *(extra or [])],
+                tools=TOOLS,
+                tool_choice="auto" if tools else "none",
+            ),
+            lambda c: {
+                "turn": state.customer_turns,
+                "tools": [t.function.name for t in (c.choices[0].message.tool_calls or [])],
+            },
         )
         usage = completion.usage
         if usage:
