@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
-PUBLIC_PATHS = {"/login", "/health"}
+PUBLIC_PATHS = {"/login", "/health", "/favicon.svg"}
 MAX_FAILURES = 5
 LOCKOUT_SECONDS = 15 * 60
 SESSION_DAYS = 30
