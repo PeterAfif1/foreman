@@ -54,8 +54,16 @@ def check_deadline(lead: Lead, received_at: date | None) -> Lead:
     return lead
 
 
+def check_budget(lead: Lead) -> Lead:
+    """A budget of $0 means not stated. "Under 8k" sometimes comes back as min 0,
+    max 8000, and nobody says their budget starts at $0."""
+    update = {f: None for f in ("budget_min", "budget_max") if getattr(lead, f) == 0}
+    return lead.model_copy(update=update) if update else lead
+
+
 def apply_rules(lead: Lead, text: str, received_at: date | None) -> Lead:
     if not lead.is_lead:
         return lead
+    lead = check_budget(lead)
     lead = check_name(lead, text)
     return check_deadline(lead, received_at)
