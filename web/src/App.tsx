@@ -51,9 +51,16 @@ export default function App() {
     }
   }
 
+  // Some changes move the card too (sending the first reply moves it to
+  // Contacted), so redraw the board if it's no longer in the column shown.
   async function onChanged(card: Card) {
-    replaceCard(card);
-    setStats(await api.stats());
+    const shownIn = Object.keys(columns).find((k) => columns[k].some((c) => c.id === card.id));
+    if (shownIn === card.stage) {
+      replaceCard(card);
+      setStats(await api.stats());
+    } else {
+      await reload();
+    }
   }
 
   async function onCreate(text: string, receivedAt: string) {

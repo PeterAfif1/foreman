@@ -57,7 +57,16 @@ export type CardEvent =
   | { at: string; kind: "approved"; detail: { edited_fields: string[] } }
   | { at: string; kind: "moved"; detail: { from: string; to: string } }
   | { at: string; kind: "note"; detail: { text: string } }
-  | { at: string; kind: "edited"; detail: { fields: string[] } };
+  | { at: string; kind: "edited"; detail: { fields: string[] } }
+  | { at: string; kind: "reply_drafted"; detail: { text: string; prompt: string } }
+  | { at: string; kind: "reply_sent"; detail: { text: string; from_draft: boolean; edited: boolean } };
+
+export interface Draft {
+  text: string;
+  asks: string[];
+  prompt_version: string;
+  cost_usd: number | null;
+}
 
 export interface Stats {
   total: number;

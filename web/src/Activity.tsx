@@ -24,6 +24,14 @@ function describe(e: CardEvent, stageName: (key: string) => string): string {
       return `Updated ${fields(e.detail.fields)}`;
     case "note":
       return e.detail.text;
+    case "reply_drafted":
+      return "AI drafted a reply";
+    case "reply_sent":
+      return e.detail.from_draft && !e.detail.edited
+        ? "Sent the AI's draft as is"
+        : e.detail.from_draft
+          ? "Sent a reply (edited the AI's draft)"
+          : "Sent a reply";
   }
 }
 
@@ -38,9 +46,12 @@ export function Activity({ events, stages }: { events: CardEvent[]; stages: Stag
             aria-hidden
           />
           <div className="min-w-0 flex-1">
-            {e.kind === "note" ? (
+            {e.kind === "reply_sent" && (
+              <p className="mb-1 text-stone-700 dark:text-stone-300">{describe(e, stageName)}</p>
+            )}
+            {e.kind === "note" || e.kind === "reply_sent" ? (
               <p className="rounded-md bg-white p-2 whitespace-pre-wrap break-words shadow-sm dark:bg-stone-900">
-                {describe(e, stageName)}
+                {e.kind === "reply_sent" ? e.detail.text : describe(e, stageName)}
               </p>
             ) : (
               <p className="text-stone-700 dark:text-stone-300">{describe(e, stageName)}</p>

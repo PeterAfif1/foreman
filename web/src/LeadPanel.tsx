@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Activity } from "./Activity";
 import { api } from "./api";
 import { cleanFields, FieldsForm } from "./FieldsForm";
+import { ReplyBox } from "./ReplyBox";
 import type { Card, CardEvent, LeadFields, Stage } from "./types";
 import { EMPTY_FIELDS } from "./types";
 
@@ -180,6 +181,22 @@ export function LeadPanel({
           )}
         </div>
         {error && <p className="mt-2 text-sm text-red-600">Couldn't save: {error}</p>}
+
+        {saved.is_lead && (
+          <>
+            <h3 className={`${heading} mt-8`}>Reply to the customer</h3>
+            <ReplyBox
+              card={card}
+              contact={saved.contact}
+              busy={busy || editing}
+              onDrafted={loadEvents}
+              onSent={async (updated) => {
+                onChanged(updated);
+                await loadEvents();
+              }}
+            />
+          </>
+        )}
 
         <h3 className={`${heading} mt-8`}>Notes</h3>
         <form
