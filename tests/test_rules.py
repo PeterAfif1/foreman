@@ -74,3 +74,14 @@ def test_no_received_date_changes_nothing():
 def test_non_leads_are_untouched():
     spam = Lead(is_lead=False)
     assert apply_rules(spam, "buy SEO", RECEIVED) == spam
+
+
+def test_flexible_needs_timing_words():
+    from foreman.rules import check_flexible
+
+    flex = lead(urgency="flexible")
+    assert check_flexible(flex, "no rush at all, carpet the stairs").urgency == "flexible"
+    assert check_flexible(flex, "whenever you have an opening").urgency == "flexible"
+    assert check_flexible(flex, "deck please, budget is flexible").urgency is None
+    assert check_flexible(flex, "not sure yet").urgency is None
+    assert check_flexible(lead(urgency="soon"), "asap").urgency == "soon"

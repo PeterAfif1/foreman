@@ -54,7 +54,7 @@ come. The person sending it decides those.
 - End with the sign-off given, on its own line.
 """
 
-AGENT_PROMPT_VERSION = "a3"
+AGENT_PROMPT_VERSION = "a4"
 
 AGENT_PROMPT = """\
 You are the website chat for a small residential construction and remodeling company. \

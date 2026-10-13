@@ -11,6 +11,16 @@ from datetime import date
 
 from foreman.schema import Lead, Urgency
 
+# Words that mean the customer said the timing is open. Without one of these,
+# "flexible" is a guess, usually from "budget is flexible" or "not sure yet".
+OPEN_TIMING = re.compile(
+    r"\b(?:no rush|no hurry|not in a (?:rush|hurry)|whenever|any ?time|no deadline|"
+    r"timing is (?:open|flexible)|flexible (?:on|with) (?:timing|time|when|dates?)|"
+    r"at some point|not urgent|nothing urgent|in no rush|no time pressure|"
+    r"when(?:ever)? (?:you|it) (?:can|works)|next few months|this year)\b",
+    re.I,
+)
+
 SOON_WITHIN_DAYS = 60
 
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
@@ -61,9 +71,17 @@ def check_budget(lead: Lead) -> Lead:
     return lead.model_copy(update=update) if update else lead
 
 
+def check_flexible(lead: Lead, text: str) -> Lead:
+    """Keep "flexible" only if they actually said the timing is open."""
+    if lead.urgency is Urgency.FLEXIBLE and not OPEN_TIMING.search(text):
+        return lead.model_copy(update={"urgency": None})
+    return lead
+
+
 def apply_rules(lead: Lead, text: str, received_at: date | None) -> Lead:
     if not lead.is_lead:
         return lead
     lead = check_budget(lead)
+    lead = check_flexible(lead, text)
     lead = check_name(lead, text)
     return check_deadline(lead, received_at)
