@@ -49,3 +49,20 @@ def violations(reply: str, customer_said: str) -> list[str]:
 def plain_punctuation(text: str) -> str:
     """Em and en dashes become commas. The prompt asks for this, code makes sure."""
     return re.sub(r"\s*[\u2014\u2013]\s*", ", ", text)
+
+
+GREETING_NAME = re.compile(r"\b(Hi|Hello|Hey|Thanks|Thank you)(,?)\s+([A-Z][a-z]+)\b")
+
+
+def strip_unstated_names(reply: str, customer_said: str) -> str:
+    """ "Thanks, Carlos!" becomes "Thanks!" when Carlos only appears inside their email
+    address. Using a name they never gave reads as creepy, and it's a guess."""
+    written = re.sub(r"\S+@\S+", " ", customer_said).casefold()
+
+    def fix(m: re.Match) -> str:
+        name = m.group(3)
+        if name.casefold() == "there" or re.search(rf"\b{name.casefold()}\b", written):
+            return m.group(0)
+        return m.group(1)
+
+    return GREETING_NAME.sub(fix, reply)

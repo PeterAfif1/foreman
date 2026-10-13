@@ -18,7 +18,7 @@ from openai import OpenAI, pydantic_function_tool
 from pydantic import BaseModel, Field, ValidationError
 
 from foreman.extract import DEFAULT_MODEL, estimate_cost
-from foreman.guards import plain_punctuation, violations
+from foreman.guards import plain_punctuation, strip_unstated_names, violations
 from foreman.prompts import AGENT_PROMPT, AGENT_PROMPT_VERSION
 from foreman.schema import JobType, Lead, Urgency
 
@@ -26,8 +26,14 @@ MAX_CUSTOMER_TURNS = 8
 MAX_TOOL_STEPS = 4  # model calls per customer message, so one turn can't loop forever
 MAX_MESSAGE_CHARS = 1500
 
-FALLBACK = "Thanks! Someone from our team will follow up with you soon."
+FALLBACK = "Sorry, could you say that another way?"
 CLOSED = "Thanks for reaching out. This chat is closed now."
+SUBMITTED = "Thanks! I've passed this to the team, and someone will be in touch soon."
+ENDED = "Thanks for reaching out. Take care!"
+
+# Asked at least once before the chat can be submitted, if the first message didn't
+# already say them. The customer can still answer "not sure".
+ASK_BEFORE_FINISHING = ["where the job is", "their name"]
 
 
 # Tools the model can call. Their arguments are validated like any other input.
@@ -171,13 +177,20 @@ def _run_tool(state: ChatState, name: str, raw_args: str) -> dict:
             state.lead()  # make sure the merged details are still a valid Lead
             return {"saved": sorted(new), "still_missing": missing(state.lead())}
         if name == "Finish":
-            blocking = can_submit(state.lead())
+            lead = state.lead()
+            blocking = can_submit(lead)
             if blocking and state.customer_turns < MAX_CUSTOMER_TURNS:
                 return {"ok": False, "need_first": blocking}
+            unasked = [a for a in ASK_BEFORE_FINISHING if a in missing(lead)]
+            if unasked and state.customer_turns == 1:
+                return {"ok": False, "ask_first": unasked}
             state.status = "submitted"
             state.end_reason = Finish.model_validate(args).reason
             return {"ok": True}
         if name == "EndChat":
+            if state.details.get("job_types"):
+                # A real job was described: never throw the lead away.
+                return {"ok": False, "error": "This is a real job request. Use Finish."}
             state.status = "ended"
             state.end_reason = EndChat.model_validate(args).reason
             return {"ok": True}
@@ -273,10 +286,17 @@ def respond(
             state.guard_fallbacks += 1
             reply = FALLBACK
 
+    # Names they never wrote come out ("Thanks, Carlos!" from carlos@... -> "Thanks!").
+    reply = strip_unstated_names(reply, state.customer_text())
+
     if state.status == "open" and state.customer_turns >= MAX_CUSTOMER_TURNS:
         # Out of turns and the model didn't close it: submit what we have if we can.
         state.status = "submitted" if not can_submit(state.lead()) else "ended"
         state.end_reason = "turn limit"
+
+    # A closed chat can't take answers, so its last message can't ask anything.
+    if state.status != "open" and "?" in reply:
+        reply = SUBMITTED if state.status == "submitted" else ENDED
 
     state.messages.append({"role": "assistant", "content": reply})
     return Turn(reply=reply, done=state.status != "open", submitted=state.status == "submitted")

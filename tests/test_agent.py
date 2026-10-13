@@ -74,7 +74,9 @@ def test_finish_is_refused_without_contact():
 
 
 def test_finish_with_job_and_contact_submits():
-    state = ChatState(details={"job_types": ["roofing"]})
+    state = ChatState(
+        details={"job_types": ["roofing"], "customer_name": "Mike", "location": "Burbank"}
+    )
     turn, _ = run(
         state,
         "818-555-0101",
@@ -206,3 +208,54 @@ def test_zero_budget_is_not_stated():
     lead = Lead(is_lead=True, budget_min=0, budget_max=8000)
     out = apply_rules(lead, "under 8k", date(2026, 10, 12))
     assert (out.budget_min, out.budget_max) == (None, 8000)
+
+
+def test_finish_on_first_message_must_ask_name_and_place_first():
+    state = ChatState()
+    run(
+        state,
+        "kitchen redo, 818-555-0101",
+        tool("SaveDetails", job_types=["kitchen"], contact="818-555-0101"),
+        tool("Finish", reason="have job and contact"),
+        say("Thanks! Where is the house, and what's your name?"),
+    )
+    assert state.status == "open"
+    result = json.loads(state.messages[-2]["content"])
+    assert result == {"ok": False, "ask_first": ["where the job is", "their name"]}
+
+
+def test_finish_allowed_after_they_had_a_chance():
+    state = ChatState(details={"job_types": ["kitchen"], "contact": "a@b.com"}, customer_turns=1)
+    turn, _ = run(state, "not sure, rather not say", tool("Finish", reason="ok"), say("Thanks!"))
+    assert turn.submitted
+
+
+def test_real_job_can_never_be_thrown_away():
+    state = ChatState(details={"job_types": ["bathroom"]})
+    run(state, "whatever", tool("EndChat", reason="rude"), say("Could you tell me more?"))
+    assert state.status == "open"
+
+
+def test_closed_chat_last_message_cannot_ask_anything():
+    state = ChatState(
+        details={"job_types": ["roofing"], "customer_name": "Mike", "location": "Burbank"}
+    )
+    turn, _ = run(
+        state,
+        "818-555-0101",
+        tool("SaveDetails", contact="818-555-0101"),
+        tool("Finish", reason="done"),
+        say("Done! Do you have a budget?"),
+    )
+    assert turn.submitted
+    assert "?" not in turn.reply
+
+
+def test_names_from_email_are_removed_from_replies():
+    from foreman.guards import strip_unstated_names
+
+    said = "retile my shower. carlos.reyes88@gmail.com"
+    assert strip_unstated_names("Thanks, Carlos! When?", said) == "Thanks! When?"
+    assert strip_unstated_names("Hi Carlos, ok", said) == "Hi, ok"
+    assert strip_unstated_names("Thanks, Mike!", "I'm Mike") == "Thanks, Mike!"
+    assert strip_unstated_names("Hi there!", said) == "Hi there!"
