@@ -1,0 +1,479 @@
+{
+  "label": "reply-r2-r2",
+  "kind": "reply",
+  "timestamp": "2026-10-13T15:49:41+00:00",
+  "git": {
+    "sha": "276c169",
+    "dirty": true
+  },
+  "model": "gpt-4o-mini",
+  "prompt_version": "r2",
+  "dataset": {
+    "path": "eval/data/synthetic.jsonl",
+    "sha256": "400c298f1099",
+    "n": 26
+  },
+  "summary": {
+    "passed": 25,
+    "n": 26,
+    "failures": {
+      "no_sign_off": 1
+    },
+    "avg_cost_usd": 9.415961538461538e-05
+  },
+  "examples": [
+    {
+      "id": "gen-001",
+      "reply": "Hi Robert, thanks for reaching out about your master bathroom remodel in Pasadena. Someone will be in touch to set up a time to discuss your project further. \nThanks!",
+      "asks": [],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-002",
+      "reply": "Hi Mike, thanks for reaching out about the new floors in your living room and hallway. Could you let me know where you're located and if you have a rough budget in mind? \nThanks!",
+      "asks": [
+        "where the job is",
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-003",
+      "reply": "Hi Priya, thanks for reaching out! I understand you're looking to remodel the kitchen and replace the roof in your new Burbank home. Someone will be in touch to set up a time to discuss your project further. \nThanks!",
+      "asks": [],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-004",
+      "reply": "Hi, thanks for reaching out! Can you let me know what you need done and where the job is located? Also, when are you hoping to get started? \nThanks!",
+      "asks": [
+        "what they need done",
+        "where the job is",
+        "when they want it done"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-006",
+      "reply": "Hi Ana, thanks for reaching out about the burst pipe. I understand it's urgent. Can you confirm if there are any other issues we should know about? Someone will be in touch to set up a time. \nThanks!",
+      "asks": [],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-007",
+      "reply": "Hi Linda, thanks for reaching out! I understand you're looking to replace the roof on your ranch house. Someone will be in touch to set up a time to discuss the details further. \nThanks!",
+      "asks": [],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-008",
+      "reply": "Hi, thanks for reaching out! I see you're interested in a new deck off the back of your house. Can you tell me more about the location and when you're hoping to have it done? Also, any details on your budget would be helpful. \nThanks!",
+      "asks": [
+        "where the job is",
+        "when they want it done",
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-009",
+      "reply": "Hi Jen, thanks for reaching out! I understand you're looking to add a bedroom and bathroom to your home. Can you share when you\u2019re hoping to start this project and if you have a rough budget in mind? \nThanks!",
+      "asks": [
+        "when they want it done",
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-010",
+      "reply": "Hi, thanks for reaching out about retiling your shower. Could you let me know your name and when you\u2019re hoping to get this done? \nThanks!",
+      "asks": [
+        "when they want it done",
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-011",
+      "reply": "Hi, thanks for reaching out! I understand you need a new vanity and toilet for your guest bath in Encino. Could you share your name and a rough idea of your budget? \nThanks!",
+      "asks": [
+        "a rough budget",
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-012",
+      "reply": "Thanks for reaching out about the new deck for your daughter's wedding. Can you share your name and any ideas you have for the timeline and budget? Someone will be in touch to set up a time.",
+      "asks": [
+        "when they want it done",
+        "a rough budget",
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": true
+      }
+    },
+    {
+      "id": "gen-013",
+      "reply": "Hi Mark, thanks for reaching out about the cracked kitchen tiles. Can you let me know the location of the job and what kind of budget you have in mind? Someone will be in touch to set up a time. \nThanks!",
+      "asks": [
+        "where the job is",
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-014",
+      "reply": "Hi, thanks for reaching out about the drainage and grading in your backyard. Can I get your name and a rough idea of your budget for this project? Someone will be in touch soon to set up a time. \nThanks!",
+      "asks": [
+        "a rough budget",
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-015",
+      "reply": "Hi, thanks for reaching out about the full roof replacement in Northridge. Could you let me know when you're hoping to get this done and a rough idea of your budget? Also, what's your name? \nThanks!",
+      "asks": [
+        "when they want it done",
+        "a rough budget",
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-016",
+      "reply": "Hi Sam, thanks for reaching out about your hall bathroom remodel. Could you let me know where you're located and what kind of budget you're thinking for the project? \nThanks!",
+      "asks": [
+        "where the job is",
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-017",
+      "reply": "Hi, thanks for reaching out. I understand your water heater is leaking and you need help. Can you please share your name so we can assist you better? \nThanks!",
+      "asks": [
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-018",
+      "reply": "Hi Priti, thanks for reaching out about your kitchen remodel in Woodland Hills. To help us understand your project better, could you share a rough budget you have in mind? Looking forward to hearing from you! \nThanks!",
+      "asks": [
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-019",
+      "reply": "Hi Greg, thanks for reaching out about retiling your guest bathroom. Could you share what kind of budget you have in mind for this project? Looking forward to hearing from you! \nThanks!",
+      "asks": [
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-020",
+      "reply": "Hi Lisa, thanks for reaching out about the vinyl plank flooring in your bedrooms. Could you let me know when you're looking to have this done and if you have a rough budget in mind? \nThanks!",
+      "asks": [
+        "when they want it done",
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-021",
+      "reply": "Thanks for reaching out! I understand you need your kitchen cabinets painted and new counters before moving in. Could you share your name and a rough idea of your budget for this project? \nThanks!",
+      "asks": [
+        "a rough budget",
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-022",
+      "reply": "Hi Nicole, thanks for reaching out! I understand you need to replace the nursery carpet with hardwood before the baby arrives. Could you share what your rough budget looks like for this project? \nThanks!",
+      "asks": [
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-023",
+      "reply": "Hi, thanks for reaching out. I understand you need the exterior trim repainted before your HOA inspection. Could you share your name and a rough budget for the project? \nThanks!",
+      "asks": [
+        "a rough budget",
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-024",
+      "reply": "Hi Ray, thanks for reaching out. I understand a branch has punctured your roof and you have it tarped. We'll have someone get in touch to set up a time to help you out. \nThanks!",
+      "asks": [],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-025",
+      "reply": "Thanks for reaching out about the sunroom addition! Could you share your name and any ideas on when you'd like to start and what your budget looks like? Looking forward to hearing more about your vision.  \nThanks!",
+      "asks": [
+        "when they want it done",
+        "a rough budget",
+        "their name"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-026",
+      "reply": "Hi Wendy, thanks for reaching out! I understand you want to carpet the hallway and stairs. Could you share what kind of budget you have in mind for this project? \nThanks!",
+      "asks": [
+        "a rough budget"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    },
+    {
+      "id": "gen-027",
+      "reply": "Hi Dana, thanks for reaching out about your kitchen remodel and possible flooring update. Can you let me know where the job will take place and when you're hoping to start? \nThanks!",
+      "asks": [
+        "where the job is",
+        "when they want it done"
+      ],
+      "checks": {
+        "invented_money": [],
+        "invented_when": [],
+        "invented_name": null,
+        "missed_asks": [],
+        "redundant_asks": [],
+        "too_long": false,
+        "dashes": false,
+        "no_sign_off": false
+      }
+    }
+  ]
+}
