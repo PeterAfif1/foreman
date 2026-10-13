@@ -1,4 +1,4 @@
-import type { Card, LeadFields, Stage, Stats } from "./types";
+import type { Card, CardEvent, LeadFields, Stage, Stats } from "./types";
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, {
@@ -25,5 +25,9 @@ export const api = {
   move: (id: number, stage: string, index: number) =>
     post<Card>(`/api/leads/${id}/move`, { stage, index }),
   approve: (id: number, fields: LeadFields) => post<Card>(`/api/leads/${id}/approve`, fields),
+  update: (id: number, fields: LeadFields) =>
+    call<Card>(`/api/leads/${id}/fields`, { method: "PUT", body: JSON.stringify(fields) }),
+  events: (id: number) => call<CardEvent[]>(`/api/leads/${id}/events`),
+  note: (id: number, text: string) => post<CardEvent>(`/api/leads/${id}/notes`, { text }),
   logout: () => fetch("/logout", { method: "POST" }),
 };

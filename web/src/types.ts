@@ -52,6 +52,13 @@ export interface Stage {
   closed: boolean;
 }
 
+export type CardEvent =
+  | { at: string; kind: "created"; detail: Record<string, never> }
+  | { at: string; kind: "approved"; detail: { edited_fields: string[] } }
+  | { at: string; kind: "moved"; detail: { from: string; to: string } }
+  | { at: string; kind: "note"; detail: { text: string } }
+  | { at: string; kind: "edited"; detail: { fields: string[] } };
+
 export interface Stats {
   total: number;
   pending: number;

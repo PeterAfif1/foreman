@@ -3,7 +3,7 @@ import { api } from "./api";
 import { Board, groupByStage, type Columns } from "./Board";
 import { LeadPanel } from "./LeadPanel";
 import { NewLead } from "./NewLead";
-import type { Card, LeadFields, Stage, Stats } from "./types";
+import type { Card, Stage, Stats } from "./types";
 
 export default function App() {
   const [stages, setStages] = useState<Stage[]>([]);
@@ -38,7 +38,12 @@ export default function App() {
 
   async function onMove(id: number, stage: string, index: number) {
     try {
-      replaceCard(await api.move(id, stage, index));
+      const card = await api.move(id, stage, index);
+      // Dragging already put the card in place. A move from the card's own menu
+      // didn't, so reload the board to show it in its new column.
+      const shownIn = Object.keys(columns).find((k) => columns[k].some((c) => c.id === id));
+      if (shownIn === card.stage) replaceCard(card);
+      else await reload();
     } catch (e) {
       // The server is the source of truth: if the move didn't save, show what did.
       setError(`Couldn't move that card: ${e instanceof Error ? e.message : e}`);
@@ -46,9 +51,8 @@ export default function App() {
     }
   }
 
-  async function onApprove(fields: LeadFields) {
-    if (openId === null) return;
-    replaceCard(await api.approve(openId, fields));
+  async function onChanged(card: Card) {
+    replaceCard(card);
     setStats(await api.stats());
   }
 
@@ -108,9 +112,10 @@ export default function App() {
       {open && (
         <LeadPanel
           card={open}
-          stageName={stages.find((s) => s.key === open.stage)?.name ?? open.stage}
+          stages={stages}
           onClose={() => setOpenId(null)}
-          onApprove={onApprove}
+          onChanged={onChanged}
+          onMove={onMove}
         />
       )}
       {adding && <NewLead onClose={() => setAdding(false)} onCreate={onCreate} />}
