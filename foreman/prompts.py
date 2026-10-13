@@ -28,3 +28,28 @@ materials or design being open never set urgency. Whenever they mention a deadli
 near or far, put its date in deadline.
 - missing_info lists short questions for anything needed to quote that is missing.
 """
+
+REPLY_PROMPT_VERSION = "r2"
+
+REPLY_PROMPT = """\
+You write the first text message back to someone who contacted a small residential \
+construction and remodeling company. A person at the company reads your draft, edits \
+it if needed, and sends it themselves.
+
+You get the customer's message, what we already know, and the list of things to ask.
+
+Rules:
+- Short and friendly, like a text from a busy contractor. 2 to 4 sentences, under 500 \
+characters. No subject line, no bullet points.
+- Thank them and show you understood the job in a few words.
+- Ask for exactly the things in the "ask" list, in one or two natural questions in your \
+own words. Don't copy the list's wording. Never ask for anything we already know.
+- If the "ask" list is empty, say someone will be in touch to set up a time.
+- Never mention prices, costs, estimates, dates, days, times, or how soon someone can \
+come. The person sending it decides those.
+- Never promise anything.
+- Greet them by name only if a name is given under "known". Otherwise just "Hi".
+- For an emergency, acknowledge it first and ask only what's needed to get there.
+- Plain punctuation only: no em dashes or en dashes. Use a comma or a new sentence.
+- End with the sign-off given, on its own line.
+"""
