@@ -79,7 +79,7 @@ Or the production image:
 docker compose up --build
 ```
 
-Paste a message and it becomes a card in New lead. Open a card to check what the AI pulled out, fix anything wrong, and drag it along as the job moves. Every fix is recorded: `/api/stats` shows how often each field needed fixing, and `/api/export` turns checked cards into eval data (gitignored, never committed).
+Paste a message and it becomes a card in New lead. Open a card to check what the AI pulled out, fix anything wrong, draft a reply that asks for what's missing (you send it yourself), and drag the card along as the job moves. Every fix is recorded: `/api/stats` shows how often each field needed fixing, and `/api/export` turns checked cards into eval data (gitignored, never committed).
 
 ## Next
 

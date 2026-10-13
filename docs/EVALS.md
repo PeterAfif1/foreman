@@ -36,6 +36,30 @@ Also tracked: per-field accuracy, omission rate, lead vs. spam precision and rec
 
 Median latency is about 1.3 s. Ranges are min to max across 3 runs; v0 swung 8 points on hallucination rate between identical runs, which is why every version gets several runs and CI doesn't gate on one. 27 examples is still a smoke test, not a benchmark: each field miss moves accuracy about 0.5 points.
 
+## Reply drafts
+
+The AI drafts the first text back to a customer. Code decides what to ask (whatever is still blank: what they need, where, when, budget, name, at most 3), and the model only writes the wording. A person edits and sends it from their own phone. Nothing is sent automatically.
+
+Every draft is checked by plain rules, no model grading a model ([`eval/reply_checks.py`](../eval/reply_checks.py)):
+
+| Check | Fails when |
+|---|---|
+| invented money | a price or amount the customer never wrote |
+| invented when | a day, date or time the customer never wrote |
+| invented name | "Hi Carlos" when Carlos only appears inside their email address |
+| missed asks | a missing detail that the reply doesn't ask about |
+| redundant asks | asking for a budget they already gave |
+| dashes, length, sign-off | em dashes, over 500 characters, missing sign-off |
+
+| Version | Change | Passed every check (3 runs) |
+|---|---|---|
+| r1 | first prompt | 26/26 on one run, but reading the drafts found problems the checks missed: an em dash, wording copied from the instructions, and "call me back" not asking what work they need |
+| r2 | plain ask phrases, unknown job asked first, no dashes, dash check added | **77/78** (one missing sign-off) |
+
+Known gap: the labels don't include deadlines, so a draft can ask "when?" after the customer said "before June" and no check notices. In real use the extractor fills the deadline and code skips that question.
+
+When a reply is marked as sent, Foreman stores what was actually sent next to the draft. `/api/stats` reports how many drafts went out unedited: the live quality number once real people use it.
+
 ## All decisions
 
 - **Null over guessing.** One convention for "not stated" across every field. It keeps the schema honest and makes hallucinations easy to count.
