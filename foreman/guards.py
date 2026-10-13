@@ -34,3 +34,8 @@ def invented_when(reply: str, customer_said: str) -> list[str]:
 
 def violations(reply: str, customer_said: str) -> list[str]:
     return invented_money(reply, customer_said) + invented_when(reply, customer_said)
+
+
+def plain_punctuation(text: str) -> str:
+    """Em and en dashes become commas. The prompt asks for this, code makes sure."""
+    return re.sub(r"\s*[\u2014\u2013]\s*", ", ", text)

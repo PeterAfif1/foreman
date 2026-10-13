@@ -180,3 +180,9 @@ def test_contact_is_asked_right_after_the_job():
         "what they need done",
         "a phone number or email to reach them",
     ]
+
+
+def test_dashes_are_replaced_before_sending():
+    state = ChatState()
+    turn, _ = run(state, "hi", say("Got it\u2014what's the address?"))
+    assert turn.reply == "Got it, what's the address?"

@@ -18,7 +18,7 @@ from openai import OpenAI, pydantic_function_tool
 from pydantic import BaseModel, Field, ValidationError
 
 from foreman.extract import DEFAULT_MODEL, estimate_cost
-from foreman.guards import violations
+from foreman.guards import plain_punctuation, violations
 from foreman.prompts import AGENT_PROMPT, AGENT_PROMPT_VERSION
 from foreman.schema import JobType, Lead, Urgency
 
@@ -236,8 +236,7 @@ def respond(
                 {"role": "tool", "tool_call_id": t.id, "content": json.dumps(result)}
             )
 
-    if not reply:
-        reply = FALLBACK
+    reply = plain_punctuation(reply) if reply else FALLBACK
 
     # Guardrail: nothing the customer didn't say about money or dates.
     broken = violations(reply, state.customer_text())
@@ -249,7 +248,7 @@ def respond(
             "Rewrite it without prices, dates, days or times. Reply with the message only.",
         }
         retry = call([{"role": "assistant", "content": reply}, note], tools=False)
-        reply = (retry.content or "").strip()
+        reply = plain_punctuation((retry.content or "").strip())
         if not reply or violations(reply, state.customer_text()):
             state.guard_fallbacks += 1
             reply = FALLBACK
