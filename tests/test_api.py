@@ -3,7 +3,7 @@ import logging
 import pytest
 from fastapi.testclient import TestClient
 
-from foreman.api import HideHealthChecks, create_app, get_extractor, get_store
+from foreman.api import HideHealthChecks, create_app, get_extractor, get_replier, get_store
 from foreman.auth import AuthSettings, load_settings
 from foreman.extract import Extraction
 from foreman.schema import Lead
@@ -26,6 +26,21 @@ def fake_extract(text, received_at=None):
     )
 
 
+def fake_reply(text, lead):
+    from foreman.reply import NotALead, ReplyDraft, what_to_ask
+
+    if not lead.is_lead:
+        raise NotALead("no reply for spam")
+    return ReplyDraft(
+        text="Hi dana! Where is the house?\nThanks!",
+        asks=what_to_ask(lead),
+        model="gpt-4o-mini",
+        prompt_version="r2",
+        cost_usd=0.0001,
+        latency_ms=500.0,
+    )
+
+
 PASSWORD = "correct horse battery"
 
 
@@ -34,6 +49,7 @@ def make_client(tmp_path, auth):
     store = Store(tmp_path / "test.db")
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_extractor] = lambda: fake_extract
+    app.dependency_overrides[get_replier] = lambda: fake_reply
     return TestClient(app)
 
 
@@ -328,3 +344,48 @@ def test_saving_without_changes_logs_nothing(client):
     client.put(f"/api/leads/{lead['id']}/fields", json=lead["extracted"])
     kinds = [e["kind"] for e in client.get(f"/api/leads/{lead['id']}/events").json()]
     assert kinds == ["created", "approved"]
+
+
+def test_draft_reply_is_logged_not_sent(client):
+    lead = client.post("/api/leads", json={"text": "x"}).json()
+    r = client.post(f"/api/leads/{lead['id']}/reply")
+    assert r.status_code == 200
+    assert r.json()["text"].startswith("Hi dana")
+    assert "where the job is" in r.json()["asks"]
+    last = client.get(f"/api/leads/{lead['id']}/events").json()[-1]
+    assert last["kind"] == "reply_drafted"
+
+
+def test_no_draft_for_spam(client):
+    lead = client.post("/api/leads", json={"text": "x"}).json()
+    client.post(f"/api/leads/{lead['id']}/approve", json={**lead["extracted"], "is_lead": False})
+    assert client.post(f"/api/leads/{lead['id']}/reply").status_code == 409
+
+
+def test_marking_sent_records_edits_and_moves_new_card_to_contacted(client):
+    lead = client.post("/api/leads", json={"text": "x"}).json()
+    client.post(f"/api/leads/{lead['id']}/reply")
+    r = client.post(
+        f"/api/leads/{lead['id']}/reply/sent", json={"text": "Hi dana! Where's the house?"}
+    )
+    assert r.json()["stage"] == "contacted"
+    sent = client.get(f"/api/leads/{lead['id']}/events").json()
+    kinds = [e["kind"] for e in sent]
+    assert kinds[-2:] == ["reply_sent", "moved"]
+    assert sent[-2]["detail"]["edited"] is True
+    stats = client.get("/api/stats").json()
+    assert (stats["replies_sent"], stats["drafts_sent_unedited"]) == (1, 0)
+
+
+def test_sending_the_draft_as_is_counts_as_unedited(client):
+    lead = client.post("/api/leads", json={"text": "x"}).json()
+    draft = client.post(f"/api/leads/{lead['id']}/reply").json()["text"]
+    client.post(f"/api/leads/{lead['id']}/reply/sent", json={"text": draft})
+    assert client.get("/api/stats").json()["drafts_sent_unedited"] == 1
+
+
+def test_sent_does_not_move_cards_past_new(client):
+    lead = client.post("/api/leads", json={"text": "x"}).json()
+    client.post(f"/api/leads/{lead['id']}/move", json={"stage": "quote_sent", "index": 0})
+    r = client.post(f"/api/leads/{lead['id']}/reply/sent", json={"text": "following up"})
+    assert r.json()["stage"] == "quote_sent"

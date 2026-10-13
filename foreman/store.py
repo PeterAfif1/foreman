@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lead_id INTEGER NOT NULL REFERENCES leads(id),
     at TEXT NOT NULL,
-    kind TEXT NOT NULL,  -- created | approved | moved | note | edited
+    kind TEXT NOT NULL,  -- created | approved | moved | note | edited | reply_drafted | reply_sent
     detail TEXT          -- JSON
 );
 """
@@ -283,6 +283,41 @@ class Store:
         with self._conn() as conn:
             self._log(conn, lead_id, "note", {"text": text})
         return self.events(lead_id)[-1]
+
+    def log_draft(self, lead_id: int, text: str, prompt_version: str) -> None:
+        with self._conn() as conn:
+            self._log(conn, lead_id, "reply_drafted", {"text": text, "prompt": prompt_version})
+
+    def mark_sent(self, lead_id: int, text: str) -> LeadRecord | None:
+        """Record the reply as the person actually sent it. Comparing it with the
+        last draft shows how much drafts get edited. A card still in New lead moves
+        to Contacted, since the customer has now been contacted."""
+        record = self.get(lead_id)
+        if record is None:
+            return None
+        drafts = [e for e in self.events(lead_id) if e.kind == "reply_drafted"]
+        draft = drafts[-1].detail["text"] if drafts else None
+        with self._conn() as conn:
+            self._log(
+                conn,
+                lead_id,
+                "reply_sent",
+                {"text": text, "from_draft": draft is not None, "edited": text != draft},
+            )
+        if record.stage == "new":
+            self.move(lead_id, "contacted", 0)
+        return self.get(lead_id)
+
+    def reply_stats(self) -> dict:
+        with self._conn() as conn:
+            rows = conn.execute("SELECT detail FROM events WHERE kind = 'reply_sent'").fetchall()
+        sent = [json.loads(r["detail"]) for r in rows]
+        from_draft = [s for s in sent if s.get("from_draft")]
+        return {
+            "replies_sent": len(sent),
+            "replies_from_draft": len(from_draft),
+            "drafts_sent_unedited": sum(1 for s in from_draft if not s["edited"]),
+        }
 
     def update_fields(self, lead_id: int, lead: Lead) -> LeadRecord | None:
         """Change a card that was already checked, e.g. a new phone number.

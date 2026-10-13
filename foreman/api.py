@@ -36,6 +36,7 @@ from foreman.auth import (
     password_matches,
 )
 from foreman.extract import extract
+from foreman.reply import NotALead, draft_reply
 from foreman.schema import Lead
 from foreman.store import DEFAULT_DB, REVIEW_FIELDS, LeadRecord, Store
 
@@ -56,8 +57,13 @@ def get_extractor():
     return extract
 
 
+def get_replier():
+    return draft_reply
+
+
 StoreDep = Annotated[Store, Depends(get_store)]
 ExtractorDep = Annotated[object, Depends(get_extractor)]
+ReplierDep = Annotated[object, Depends(get_replier)]
 
 
 class LeadIn(BaseModel):
@@ -235,6 +241,43 @@ def update_fields(lead_id: int, lead: Lead, store: StoreDep):
     return LeadOut.from_record(record)
 
 
+class DraftOut(BaseModel):
+    text: str
+    asks: list[str]
+    prompt_version: str
+    cost_usd: float | None
+
+
+class SentIn(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+
+
+@api.post("/leads/{lead_id}/reply", response_model=DraftOut)
+def draft(lead_id: int, store: StoreDep, write: ReplierDep):
+    """Draft a reply from the card's current details. Nothing is sent."""
+    record = store.get(lead_id)
+    if record is None:
+        raise HTTPException(404, "lead not found")
+    fields = record.approved or record.extracted
+    if fields is None:
+        raise HTTPException(409, "fill in the card first")
+    try:
+        d = write(record.text, fields)
+    except NotALead as e:
+        raise HTTPException(409, str(e)) from e
+    store.log_draft(lead_id, d.text, d.prompt_version)
+    return DraftOut(text=d.text, asks=d.asks, prompt_version=d.prompt_version, cost_usd=d.cost_usd)
+
+
+@api.post("/leads/{lead_id}/reply/sent", response_model=LeadOut)
+def reply_sent(lead_id: int, body: SentIn, store: StoreDep):
+    """The person sent the reply themselves (text or email). Record what they sent."""
+    record = store.mark_sent(lead_id, body.text.strip())
+    if record is None:
+        raise HTTPException(404, "lead not found")
+    return LeadOut.from_record(record)
+
+
 @api.get("/leads/{lead_id}/events", response_model=list[EventOut])
 def lead_events(lead_id: int, store: StoreDep):
     if store.get(lead_id) is None:
@@ -262,6 +305,7 @@ def stats(store: StoreDep):
             f: edits[f] / len(approved) if approved else None for f in REVIEW_FIELDS
         },
         "avg_cost_usd": sum(costs) / len(costs) if costs else None,
+        **store.reply_stats(),
     }
 
 
