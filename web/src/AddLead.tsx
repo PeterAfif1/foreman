@@ -13,6 +13,7 @@ const PLACEHOLDER: Record<Source | "none", string> = {
   call: "Write down what they said on the call: the job, where, when, their number...",
   in_person: "Write down what they asked for...",
   other: "Paste or type what they said...",
+  chat: "Paste the conversation here...",
 };
 
 export function AddLead({ onAdded }: { onAdded: () => Promise<void> }) {

@@ -112,6 +112,14 @@ export default function App() {
           <NavLink active={!onBoard} href="#/add">
             Add a lead
           </NavLink>
+          <a
+            href="/quote"
+            target="_blank"
+            rel="noopener"
+            className="rounded-md px-3 py-1.5 text-sm font-medium hover:bg-stone-100 dark:hover:bg-stone-800"
+          >
+            Customer chat ↗
+          </a>
         </nav>
         {stats && onBoard && (
           <span className="hidden text-sm text-stone-500 lg:inline">

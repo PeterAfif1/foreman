@@ -33,9 +33,10 @@ export const SOURCES = [
   ["in_person", "In person"],
   ["other", "Other"],
 ] as const;
-export type Source = (typeof SOURCES)[number][0];
+export type Source = (typeof SOURCES)[number][0] | "chat";
 
 export function sourceLabel(source: string | null): string | null {
+  if (source === "chat") return "website chat";
   return SOURCES.find(([k]) => k === source)?.[1].toLowerCase() ?? null;
 }
 
