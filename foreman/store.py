@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS leads (
     error TEXT,
     stage TEXT NOT NULL DEFAULT 'new',
     position REAL NOT NULL DEFAULT 0,  -- order within the column, lowest first
-    stage_changed_at TEXT
+    stage_changed_at TEXT,
+    source TEXT  -- how the customer reached out: text | email | call | in_person | other
 );
 
 CREATE TABLE IF NOT EXISTS stages (
@@ -77,6 +78,7 @@ ADDED_COLUMNS = {
     "stage": "TEXT NOT NULL DEFAULT 'new'",
     "position": "REAL NOT NULL DEFAULT 0",
     "stage_changed_at": "TEXT",
+    "source": "TEXT",
 }
 
 # Fields compared when deciding what the reviewer changed. Same set the eval scores,
@@ -116,6 +118,7 @@ class LeadRecord:
     stage: str
     position: float
     stage_changed_at: str | None
+    source: str | None
 
 
 @dataclass
@@ -131,6 +134,16 @@ class Event:
     at: str
     kind: str
     detail: dict
+
+
+def add_column(conn: sqlite3.Connection, name: str, ddl: str) -> None:
+    """Add a column to leads, fine if another process just added it. Two servers
+    (or two first requests) can both see the column missing and both try."""
+    try:
+        conn.execute(f"ALTER TABLE leads ADD COLUMN {name} {ddl}")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" not in str(e):
+            raise
 
 
 def _now() -> str:
@@ -162,7 +175,7 @@ class Store:
             if existing:
                 for name, ddl in ADDED_COLUMNS.items():
                     if name not in existing:
-                        conn.execute(f"ALTER TABLE leads ADD COLUMN {name} {ddl}")
+                        add_column(conn, name, ddl)
             conn.executescript(SCHEMA)
             if not conn.execute("SELECT 1 FROM stages LIMIT 1").fetchone():
                 conn.executemany(
@@ -199,6 +212,7 @@ class Store:
             stage=row["stage"],
             position=row["position"],
             stage_changed_at=row["stage_changed_at"],
+            source=row["source"],
         )
 
     def _log(self, conn, lead_id: int, kind: str, detail: dict | None = None) -> None:
@@ -218,6 +232,7 @@ class Store:
         cost_usd: float | None = None,
         latency_ms: float | None = None,
         error: str | None = None,
+        source: str | None = None,
     ) -> LeadRecord:
         now = _now()
         with self._conn() as conn:
@@ -226,8 +241,8 @@ class Store:
             cur = conn.execute(
                 """INSERT INTO leads (text, received_at, created_at, extracted, raw_extracted,
                    model, prompt_version, cost_usd, latency_ms, error,
-                   stage, position, stage_changed_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)""",
+                   stage, position, stage_changed_at, source)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)""",
                 (
                     text,
                     received_at.isoformat(),
@@ -241,6 +256,7 @@ class Store:
                     error,
                     (top - 1) if top is not None else 0,
                     now,
+                    source,
                 ),
             )
             lead_id = cur.lastrowid

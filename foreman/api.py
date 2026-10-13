@@ -9,11 +9,12 @@ and the API docs at /docs. Login settings come from the environment (see auth.py
 import json
 import logging
 import os
+import threading
 from collections import Counter
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import (
@@ -48,9 +49,19 @@ router = APIRouter()  # pages, login, health
 api = APIRouter(prefix="/api")  # data
 
 
+_store_lock = threading.Lock()
+
+
 @lru_cache
+def _open_store(path: str) -> Store:
+    return Store(path)
+
+
 def get_store() -> Store:
-    return Store(os.getenv("FOREMAN_DB", DEFAULT_DB))
+    # The board's first page load sends several requests at once. Only one of
+    # them should set up (and upgrade) the database.
+    with _store_lock:
+        return _open_store(str(os.getenv("FOREMAN_DB", DEFAULT_DB)))
 
 
 def get_extractor():
@@ -66,9 +77,13 @@ ExtractorDep = Annotated[object, Depends(get_extractor)]
 ReplierDep = Annotated[object, Depends(get_replier)]
 
 
+Source = Literal["text", "email", "call", "in_person", "other"]
+
+
 class LeadIn(BaseModel):
-    text: str = Field(min_length=1, description="The message exactly as it came in.")
+    text: str = Field(min_length=1, max_length=20000, description="The message as it came in.")
     received_at: date | None = Field(default=None, description="Defaults to today.")
+    source: Source | None = Field(default=None, description="How the customer reached out.")
 
 
 class LeadOut(BaseModel):
@@ -88,6 +103,7 @@ class LeadOut(BaseModel):
     stage: str
     position: float
     stage_changed_at: str | None
+    source: str | None
 
     @classmethod
     def from_record(cls, r: LeadRecord) -> "LeadOut":
@@ -132,6 +148,11 @@ def logout(request: Request):
     return {"ok": True}
 
 
+@router.get("/favicon.svg", include_in_schema=False)
+def favicon():
+    return FileResponse(STATIC / "favicon.svg", media_type="image/svg+xml")
+
+
 @router.get("/health")
 def health():
     return {"ok": True}
@@ -145,7 +166,9 @@ def create_lead(body: LeadIn, store: StoreDep, run: ExtractorDep):
     except Exception as e:  # noqa: BLE001 - keep the lead even if the model call fails
         # The message is still saved, so nothing a customer sent gets lost. The
         # reviewer fills it in by hand.
-        record = store.add(body.text, received_at, error=f"{type(e).__name__}: {e}")
+        record = store.add(
+            body.text, received_at, error=f"{type(e).__name__}: {e}", source=body.source
+        )
         return LeadOut.from_record(record)
     record = store.add(
         body.text,
@@ -156,6 +179,7 @@ def create_lead(body: LeadIn, store: StoreDep, run: ExtractorDep):
         prompt_version=result.prompt_version,
         cost_usd=result.cost_usd,
         latency_ms=result.latency_ms,
+        source=body.source,
     )
     return LeadOut.from_record(record)
 

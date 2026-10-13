@@ -389,3 +389,44 @@ def test_sent_does_not_move_cards_past_new(client):
     client.post(f"/api/leads/{lead['id']}/move", json={"stage": "quote_sent", "index": 0})
     r = client.post(f"/api/leads/{lead['id']}/reply/sent", json={"text": "following up"})
     assert r.json()["stage"] == "quote_sent"
+
+
+def test_source_is_saved(client):
+    lead = client.post("/api/leads", json={"text": "x", "source": "call"}).json()
+    assert lead["source"] == "call"
+    assert client.post("/api/leads", json={"text": "x"}).json()["source"] is None
+
+
+def test_unknown_source_is_rejected(client):
+    assert client.post("/api/leads", json={"text": "x", "source": "pigeon"}).status_code == 422
+
+
+def test_favicon_is_public(secured):
+    r = secured.get("/favicon.svg")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("image/svg+xml")
+
+
+def test_adding_a_column_twice_is_harmless(tmp_path):
+    import sqlite3
+
+    from foreman.store import add_column
+
+    conn = sqlite3.connect(tmp_path / "x.db")
+    conn.execute("CREATE TABLE leads (id INTEGER)")
+    add_column(conn, "source", "TEXT")
+    add_column(conn, "source", "TEXT")  # a second server got there first
+    assert [r[1] for r in conn.execute("PRAGMA table_info(leads)")] == ["id", "source"]
+
+
+def test_concurrent_first_requests_share_one_store(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from foreman import api as api_module
+
+    monkeypatch.setenv("FOREMAN_DB", str(tmp_path / "shared.db"))
+    api_module._open_store.cache_clear()
+    with ThreadPoolExecutor(8) as pool:
+        stores = list(pool.map(lambda _: api_module.get_store(), range(8)))
+    assert len({id(s) for s in stores}) == 1
+    api_module._open_store.cache_clear()
