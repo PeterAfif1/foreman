@@ -14,7 +14,9 @@ from datetime import date
 from pathlib import Path
 
 from eval.metrics import ALL_FIELDS
+from foreman import tracing
 from foreman.extract import extract
+from foreman.reply import draft_reply
 from foreman.schema import Lead
 from foreman.store import Store
 
@@ -34,16 +36,19 @@ def main() -> None:
     if args.db.exists() and not args.keep:
         args.db.unlink()
     store = Store(args.db)
+    tracing.set_sink(store)  # trace every AI call, like the app does
 
     rows = [json.loads(line) for line in DATA.read_text().splitlines() if line.strip()]
     for i, row in enumerate(rows):
         received = date.fromisoformat(row["received_at"])
-        try:
-            result = extract(row["text"], received_at=received)
-        except Exception as e:  # noqa: BLE001
-            record = store.add(row["text"], received, error=f"{type(e).__name__}: {e}")
-            print(f"{row['id']}: extraction failed, saved for manual entry")
-            continue
+        with tracing.request_context() as request_id:
+            try:
+                result = extract(row["text"], received_at=received)
+            except Exception as e:  # noqa: BLE001
+                record = store.add(row["text"], received, error=f"{type(e).__name__}: {e}")
+                store.link_calls(record.id, request_id=request_id)
+                print(f"{row['id']}: extraction failed, saved for manual entry")
+                continue
         record = store.add(
             row["text"],
             received,
@@ -54,6 +59,7 @@ def main() -> None:
             cost_usd=result.cost_usd,
             latency_ms=result.latency_ms,
         )
+        store.link_calls(record.id, request_id=request_id)
         # Labels only cover the scored fields. The summary, questions and deadline
         # aren't labeled, so the model's versions stand in for what a reviewer
         # would leave alone. Otherwise every card would count as "fixed".
@@ -68,6 +74,12 @@ def main() -> None:
         # with the reviewed label. Cards in "new" stay for the reviewer.
         if stage != "new":
             store.approve(record.id, label)
+        if stage == "contacted":
+            # A drafted reply on the contacted cards, so the demo shows one.
+            with tracing.request_context() as request_id:
+                d = draft_reply(row["text"], label)
+            store.link_calls(record.id, request_id=request_id)
+            store.log_draft(record.id, d.text, d.prompt_version)
         print(f"{row['id']}: {stage}")
 
     print(f"\n{len(rows)} cards in {args.db}")
