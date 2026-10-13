@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Card } from "./types";
-import { fieldsOf } from "./types";
+import { fieldsOf, sourceLabel } from "./types";
 
 const URGENCY_STYLE = {
   emergency: "bg-red-600 text-white",
@@ -51,6 +51,7 @@ export function CardFace({ card, lifted = false }: { card: Card; lifted?: boolea
 
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-500">
         {f?.location && <span>{f.location}</span>}
+        {card.source && <span>by {sourceLabel(card.source)}</span>}
         {card.error && <span className="font-semibold text-red-600">fill in by hand</span>}
         {f && !f.is_lead && <span className="font-semibold">not a lead</span>}
         {card.status === "pending" && !card.error && (

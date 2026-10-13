@@ -4,7 +4,7 @@ import { api } from "./api";
 import { cleanFields, FieldsForm } from "./FieldsForm";
 import { ReplyBox } from "./ReplyBox";
 import type { Card, CardEvent, LeadFields, Stage } from "./types";
-import { EMPTY_FIELDS } from "./types";
+import { EMPTY_FIELDS, sourceLabel } from "./types";
 
 const heading = "mb-2 text-xs font-semibold tracking-wide text-stone-500 uppercase";
 const primary =
@@ -130,6 +130,7 @@ export function LeadPanel({
         </div>
         <p className="mt-1 mb-6 text-xs text-stone-500">
           Received {fmtDate(card.received_at)}
+          {card.source ? ` by ${sourceLabel(card.source)}` : ""}
           {card.latency_ms ? ` · read in ${(card.latency_ms / 1000).toFixed(1)}s` : ""}
           {card.prompt_version ? ` · prompt ${card.prompt_version}` : ""}
         </p>

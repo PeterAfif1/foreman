@@ -26,6 +26,19 @@ export interface LeadFields {
   missing_info: string[];
 }
 
+export const SOURCES = [
+  ["text", "Text"],
+  ["email", "Email"],
+  ["call", "Phone call"],
+  ["in_person", "In person"],
+  ["other", "Other"],
+] as const;
+export type Source = (typeof SOURCES)[number][0];
+
+export function sourceLabel(source: string | null): string | null {
+  return SOURCES.find(([k]) => k === source)?.[1].toLowerCase() ?? null;
+}
+
 export interface Card {
   id: number;
   text: string;
@@ -43,6 +56,7 @@ export interface Card {
   stage: string;
   position: number;
   stage_changed_at: string | null;
+  source: Source | null;
 }
 
 export interface Stage {
