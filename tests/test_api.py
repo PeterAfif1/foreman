@@ -286,3 +286,45 @@ def test_health_checks_are_hidden_from_the_access_log():
     f = HideHealthChecks()
     assert f.filter(access_record("/health")) is False
     assert f.filter(access_record("/api/leads")) is True
+
+
+def test_notes_show_up_in_history(client):
+    lead = client.post("/api/leads", json={"text": "a"}).json()
+    r = client.post(f"/api/leads/{lead['id']}/notes", json={"text": "  called, left voicemail  "})
+    assert r.status_code == 201
+    assert r.json()["detail"] == {"text": "called, left voicemail"}
+    kinds = [e["kind"] for e in client.get(f"/api/leads/{lead['id']}/events").json()]
+    assert kinds == ["created", "note"]
+
+
+def test_empty_note_is_rejected(client):
+    lead = client.post("/api/leads", json={"text": "a"}).json()
+    assert client.post(f"/api/leads/{lead['id']}/notes", json={"text": ""}).status_code == 422
+    assert client.post("/api/leads/999/notes", json={"text": "x"}).status_code == 404
+
+
+def test_edit_after_check_is_not_an_ai_mistake(client):
+    lead = client.post("/api/leads", json={"text": "a"}).json()
+    checked = client.post(f"/api/leads/{lead['id']}/approve", json=lead["extracted"]).json()
+    assert checked["edited_fields"] == []
+    new = {**checked["approved"], "contact": "818-555-0000"}
+    updated = client.put(f"/api/leads/{lead['id']}/fields", json=new).json()
+    assert updated["approved"]["contact"] == "818-555-0000"
+    assert updated["edited_fields"] == []  # the AI's record is untouched
+    last = client.get(f"/api/leads/{lead['id']}/events").json()[-1]
+    assert last == {**last, "kind": "edited", "detail": {"fields": ["contact"]}}
+    assert client.get("/api/stats").json()["approved_without_edits_rate"] == 1.0
+
+
+def test_edit_before_check_is_refused(client):
+    lead = client.post("/api/leads", json={"text": "a"}).json()
+    r = client.put(f"/api/leads/{lead['id']}/fields", json=lead["extracted"])
+    assert r.status_code == 409
+
+
+def test_saving_without_changes_logs_nothing(client):
+    lead = client.post("/api/leads", json={"text": "a"}).json()
+    client.post(f"/api/leads/{lead['id']}/approve", json=lead["extracted"])
+    client.put(f"/api/leads/{lead['id']}/fields", json=lead["extracted"])
+    kinds = [e["kind"] for e in client.get(f"/api/leads/{lead['id']}/events").json()]
+    assert kinds == ["created", "approved"]

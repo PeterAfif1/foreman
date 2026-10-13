@@ -211,6 +211,30 @@ def move_lead(lead_id: int, body: MoveIn, store: StoreDep):
     return LeadOut.from_record(record)
 
 
+class NoteIn(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+
+
+@api.post("/leads/{lead_id}/notes", response_model=EventOut, status_code=201)
+def add_note(lead_id: int, body: NoteIn, store: StoreDep):
+    event = store.add_note(lead_id, body.text.strip())
+    if event is None:
+        raise HTTPException(404, "lead not found")
+    return EventOut(**vars(event))
+
+
+@api.put("/leads/{lead_id}/fields", response_model=LeadOut)
+def update_fields(lead_id: int, lead: Lead, store: StoreDep):
+    """Update a checked card. Logged as an edit, not counted as an AI mistake."""
+    try:
+        record = store.update_fields(lead_id, lead)
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+    if record is None:
+        raise HTTPException(404, "lead not found")
+    return LeadOut.from_record(record)
+
+
 @api.get("/leads/{lead_id}/events", response_model=list[EventOut])
 def lead_events(lead_id: int, store: StoreDep):
     if store.get(lead_id) is None:

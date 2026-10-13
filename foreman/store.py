@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lead_id INTEGER NOT NULL REFERENCES leads(id),
     at TEXT NOT NULL,
-    kind TEXT NOT NULL,  -- created | approved | moved
+    kind TEXT NOT NULL,  -- created | approved | moved | note | edited
     detail TEXT          -- JSON
 );
 """
@@ -275,6 +275,33 @@ class Store:
                 (lead.model_dump_json(), json.dumps(edited), lead_id),
             )
             self._log(conn, lead_id, "approved", {"edited_fields": edited})
+        return self.get(lead_id)
+
+    def add_note(self, lead_id: int, text: str) -> Event | None:
+        if self.get(lead_id) is None:
+            return None
+        with self._conn() as conn:
+            self._log(conn, lead_id, "note", {"text": text})
+        return self.events(lead_id)[-1]
+
+    def update_fields(self, lead_id: int, lead: Lead) -> LeadRecord | None:
+        """Change a card that was already checked, e.g. a new phone number.
+
+        Kept apart from approve(): these are updates to the job, not mistakes the
+        AI made, so edited_fields (the AI's error record) stays as it was."""
+        record = self.get(lead_id)
+        if record is None:
+            return None
+        if record.approved is None:
+            raise ValueError("check the AI's version first")
+        changed = changed_fields(record.approved, lead)
+        if not changed:
+            return record
+        with self._conn() as conn:
+            conn.execute(
+                "UPDATE leads SET approved = ? WHERE id = ?", (lead.model_dump_json(), lead_id)
+            )
+            self._log(conn, lead_id, "edited", {"fields": changed})
         return self.get(lead_id)
 
     def stages(self) -> list[Stage]:
