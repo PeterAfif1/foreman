@@ -48,3 +48,9 @@ def test_every_attack_has_a_known_expectation():
         "redirects",
     }
     assert {a["expect"] for a in ATTACKS} <= known
+
+
+def test_emergencies_carry_no_budget_or_timing():
+    facts, truth = build_customer(row(urgency="emergency"))
+    assert "your budget" not in facts and "timing" not in facts
+    assert truth.budget_min is None

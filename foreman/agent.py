@@ -36,10 +36,18 @@ CLOSED = "Thanks for reaching out. This chat is closed now."
 class SaveDetails(BaseModel):
     """Record details the customer just gave. Only include what they actually said."""
 
-    customer_name: str | None = None
+    customer_name: str | None = Field(
+        default=None,
+        description="Only a name they wrote in the chat. A name inside an email address "
+        "doesn't count: ask them instead.",
+    )
     contact: str | None = Field(default=None, description="Phone number or email they gave.")
     job_types: list[JobType] | None = None
-    location: str | None = Field(default=None, description="City, neighborhood or address.")
+    location: str | None = Field(
+        default=None,
+        description="City, neighborhood or address. A landmark or a street where they saw "
+        "us is not a location: ask where the job is.",
+    )
     budget_min: int | None = Field(
         default=None,
         description="Whole dollars. 'About 15k' or 'maybe 15k' sets both min and max to 15000. "
@@ -49,7 +57,13 @@ class SaveDetails(BaseModel):
         default=None, description="Whole dollars. 'Under 20k' sets only max to 20000."
     )
     deadline: str | None = Field(default=None, description="YYYY-MM-DD, from today's date.")
-    urgency: Urgency | None = None
+    urgency: Urgency | None = Field(
+        default=None,
+        description="emergency: active damage or a safety problem right now (leak, no heat, "
+        "storm damage). soon: they want it within weeks or have a near deadline, including "
+        "'ASAP' without damage. flexible: they said timing is open ('no rush'). Leave empty "
+        "if they're not sure.",
+    )
     scope_summary: str | None = Field(default=None, description="1 to 2 sentences on the job.")
 
 

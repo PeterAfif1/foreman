@@ -55,13 +55,16 @@ def build_customer(row: dict) -> tuple[dict, Lead]:
         place = _pick(PLACES, lead_id, "place")
         facts["where you live"] = place
         truth["location"] = place
-    if label.budget_min is None and label.budget_max is None:
+    # In an emergency the agent skips budget and timing on purpose, so the customer
+    # doesn't hold those facts either.
+    emergency = label.urgency == "emergency"
+    if not emergency and label.budget_min is None and label.budget_max is None:
         if _pick([True, False], lead_id, "budget"):
             facts["your budget"] = "around 12k"
             truth["budget_min"] = truth["budget_max"] = 12000
         else:
             facts["your budget"] = "you have no idea yet"
-    if label.urgency is None and not label.deadline:
+    if not emergency and label.urgency is None and not label.deadline:
         if _pick([True, False], lead_id, "timing"):
             facts["timing"] = "no rush, whenever works"
             truth["urgency"] = "flexible"
