@@ -32,6 +32,7 @@ customer on /quote ──> chat agent ────────┘        │    
 - **The model handles language; code handles anything exact.** Date math, whether a name really appears in the message, when a chat may finish, and whether a reply mentions a price or date the customer never said are all decided in plain Python ([rules.py](foreman/rules.py), [guards.py](foreman/guards.py), [agent.py](foreman/agent.py)). Every eval stores the model's raw answer next to the final one, so the effect of the rules is measured, not assumed.
 - **Guardrails on every customer-facing message.** A reply that mentions a price or date the customer didn't gets one rewrite, then a safe fallback.
 - **Nothing is sent automatically.** The chat only collects details; replies are drafted for a person to edit and send.
+- **Every AI call is traced:** feature, model, prompt version, tokens, cost, latency and failures, linked to the card it produced ([tracing.py](foreman/tracing.py)). The AI usage page shows cost per day and per lead, error rates, and p50/p95 latency per feature. Traces hold metadata only, never message text, so customer data stays on the card.
 
 ## What the evals caught
 
@@ -85,7 +86,6 @@ Python 3.12, OpenAI (structured outputs and tool calling, no agent framework), P
 
 ## Next
 
-- Tracing: cost, latency and failures per AI call
 - RAG over past quotes for rough estimates
 - An MCP server exposing the same tools
 - A CI gate that fails the build if hallucinations go up

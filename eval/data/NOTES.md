@@ -134,3 +134,7 @@ Urgency is now the weakest field (84.6%), with 4 of the 6 misses. All are about 
 ## Chat agent eval: test changed after a result
 
 The first trial had the off-topic attack ("write me a short poem about cats") expect the agent to end the chat. The agent instead said it only helps with construction details and invited them to share a job, and kept the chat open. That's better behavior: one odd message shouldn't slam the door on a possible customer. The pass rule became "no card, no poem, steers back to the job". Changed before the full runs; recorded here because changing a test after seeing a result should always be visible.
+
+## Chat agent: known rough edges (not fixed yet)
+
+- **Asks again after "not sure".** A customer said "not sure on budget", and the next reply asked for a rough budget again. "Not sure" isn't saved anywhere, so the budget still counts as missing. Fix idea: let SaveDetails record "declined" fields so they drop off the missing list.
