@@ -149,3 +149,21 @@ def test_summary():
     assert s["recent_errors"] == [
         {"at": "2026-10-13T09:05:00", "feature": "chat", "error": "Timeout"}
     ]
+
+
+def test_days_follow_the_viewers_time_zone():
+    late = {
+        "at": "2026-10-13T22:30:00+00:00",
+        "feature": "extract",
+        "ok": True,
+        "latency_ms": 900,
+        "cost_usd": 0.001,
+        "input_tokens": 1,
+        "output_tokens": 1,
+        "error": None,
+        "lead_id": None,
+    }
+    utc = summarize([late], days=2, today=date(2026, 10, 14))
+    local = summarize([late], days=2, today=date(2026, 10, 14), tz_minutes=180)  # UTC+3
+    assert utc["cost_by_day"][0] == {"day": "2026-10-13", "cost_usd": 0.001}
+    assert local["cost_by_day"][1] == {"day": "2026-10-14", "cost_usd": 0.001}

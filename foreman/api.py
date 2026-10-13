@@ -334,11 +334,13 @@ def lead_events(lead_id: int, store: StoreDep):
 
 
 @api.get("/usage")
-def usage(store: StoreDep, days: int = 7):
-    """Cost, failures and latency of the AI calls over the last `days` days."""
+def usage(store: StoreDep, days: int = 7, tz: int = 0):
+    """Cost, failures and latency of the AI calls over the last `days` days.
+    `tz` is the viewer's offset from UTC in minutes, so days match their calendar."""
     days = max(1, min(days, 90))
+    tz = max(-14 * 60, min(tz, 14 * 60))
     since = (datetime.now(UTC) - timedelta(days=days)).isoformat(timespec="seconds")
-    return summarize(store.ai_calls(since=since), days)
+    return summarize(store.ai_calls(since=since), days, tz_minutes=tz)
 
 
 @api.get("/leads/{lead_id}/calls")

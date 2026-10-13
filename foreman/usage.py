@@ -28,15 +28,24 @@ def _stats(calls: list[dict]) -> dict:
     }
 
 
-def summarize(calls: list[dict], days: int, today: date | None = None) -> dict:
-    today = today or datetime.now(UTC).date()
+def _local_day(at: str, tz_minutes: int) -> str:
+    """Traces are stored in UTC; group them by the viewer's day."""
+    moment = datetime.fromisoformat(at)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return (moment + timedelta(minutes=tz_minutes)).date().isoformat()
+
+
+def summarize(calls: list[dict], days: int, today: date | None = None, tz_minutes: int = 0) -> dict:
+    """tz_minutes: the viewer's offset from UTC (e.g. 180 for UTC+3)."""
+    today = today or (datetime.now(UTC) + timedelta(minutes=tz_minutes)).date()
     by_feature = defaultdict(list)
     for c in calls:
         by_feature[c["feature"]].append(c)
 
     per_day = {(today - timedelta(days=i)).isoformat(): 0.0 for i in range(days)}
     for c in calls:
-        day = c["at"][:10]
+        day = _local_day(c["at"], tz_minutes)
         if day in per_day:
             per_day[day] += c["cost_usd"] or 0
 
