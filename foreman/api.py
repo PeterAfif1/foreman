@@ -28,16 +28,21 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.sessions import SessionMiddleware
 
+from foreman.agent import CLOSED, ChatState
+from foreman.agent import respond as agent_respond
 from foreman.auth import (
-    PUBLIC_PATHS,
     SESSION_DAYS,
     AuthSettings,
     LoginLimiter,
+    is_public,
     load_settings,
     password_matches,
 )
 from foreman.extract import extract
+from foreman.limits import ChatLimits
+from foreman.prompts import AGENT_PROMPT_VERSION
 from foreman.reply import NotALead, draft_reply
+from foreman.rules import apply_rules
 from foreman.schema import Lead
 from foreman.store import DEFAULT_DB, REVIEW_FIELDS, LeadRecord, Store
 
@@ -72,12 +77,18 @@ def get_replier():
     return draft_reply
 
 
+def get_agent():
+    return agent_respond
+
+
 StoreDep = Annotated[Store, Depends(get_store)]
 ExtractorDep = Annotated[object, Depends(get_extractor)]
 ReplierDep = Annotated[object, Depends(get_replier)]
+AgentDep = Annotated[object, Depends(get_agent)]
+public = APIRouter(prefix="/public")  # no login: the customer chat
 
 
-Source = Literal["text", "email", "call", "in_person", "other"]
+Source = Literal["text", "email", "call", "in_person", "chat", "other"]
 
 
 class LeadIn(BaseModel):
@@ -151,6 +162,11 @@ def logout(request: Request):
 @router.get("/favicon.svg", include_in_schema=False)
 def favicon():
     return FileResponse(STATIC / "favicon.svg", media_type="image/svg+xml")
+
+
+@router.get("/quote", include_in_schema=False)
+def quote_page():
+    return FileResponse(STATIC / "quote.html")
 
 
 @router.get("/health")
@@ -359,6 +375,74 @@ class HideHealthChecks(logging.Filter):
         return not (isinstance(args, tuple) and len(args) >= 3 and args[2] == "/health")
 
 
+class ChatIn(BaseModel):
+    chat_id: str | None = Field(default=None, max_length=64)
+    message: str = Field(min_length=1, max_length=1500)
+    # Hidden on the page. People never see it; bots that fill every field do.
+    website: str = ""
+
+
+class ChatOut(BaseModel):
+    chat_id: str | None
+    reply: str
+    done: bool
+
+
+BUSY = "We're getting a lot of messages right now. Please call or text us instead."
+
+
+@public.post("/chat", response_model=ChatOut)
+def chat(body: ChatIn, request: Request, store: StoreDep, run: AgentDep):
+    limits: ChatLimits = request.app.state.chat_limits
+    who = request.client.host if request.client else "unknown"
+    if body.website:
+        return ChatOut(chat_id=None, reply="Thanks!", done=True)
+    if not limits.messages.allow(who):
+        raise HTTPException(429, "too many messages, try again in a few minutes")
+
+    if body.chat_id is None:
+        if not limits.new_chats.allow(who) or not limits.daily.allow("all"):
+            return ChatOut(chat_id=None, reply=BUSY, done=True)
+        state = ChatState()
+        chat_id = store.new_chat(state.to_json())
+    else:
+        raw = store.get_chat(body.chat_id)
+        if raw is None:
+            raise HTTPException(404, "chat not found")
+        state, chat_id = ChatState.from_json(raw), body.chat_id
+        if state.status != "open":
+            # Checked here too, not only in the agent: a closed chat must never
+            # create a second card.
+            return ChatOut(chat_id=chat_id, reply=CLOSED, done=True)
+
+    today = date.today()
+    try:
+        turn = run(state, body.message.strip(), today.isoformat())
+    except Exception:  # noqa: BLE001 - the customer gets a polite answer, the lead isn't lost
+        logging.getLogger("foreman").exception("chat agent failed")
+        store.save_chat(chat_id, state.to_json())
+        return ChatOut(chat_id=chat_id, reply=BUSY, done=False)
+
+    lead_id = None
+    if turn.submitted:
+        # Same code rules as every other lead: deadline math, names must be in the text.
+        raw_lead = state.lead()
+        lead = apply_rules(raw_lead, state.customer_text(), today)
+        record = store.add(
+            state.transcript(),
+            today,
+            extracted=lead,
+            raw_extracted=raw_lead,
+            model=None,
+            prompt_version=AGENT_PROMPT_VERSION,
+            cost_usd=state.cost_usd,
+            source="chat",
+        )
+        lead_id = record.id
+    store.save_chat(chat_id, state.to_json(), lead_id)
+    return ChatOut(chat_id=chat_id, reply=turn.reply, done=turn.done)
+
+
 def create_app(auth: AuthSettings | None = None) -> FastAPI:
     auth = auth or load_settings()
     access_log = logging.getLogger("uvicorn.access")
@@ -367,14 +451,16 @@ def create_app(auth: AuthSettings | None = None) -> FastAPI:
     app = FastAPI(title="Foreman", description="Lead intake with human approval.")
     app.state.auth = auth
     app.state.limiter = LoginLimiter()
+    app.state.chat_limits = ChatLimits()
     app.include_router(router)
     app.include_router(api)
+    app.include_router(public)
     if (BOARD / "assets").exists():
         app.mount("/assets", StaticFiles(directory=BOARD / "assets"), name="assets")
 
     @app.middleware("http")
     async def require_login(request: Request, call_next):
-        if not auth.enabled or request.url.path in PUBLIC_PATHS or request.session.get("user"):
+        if not auth.enabled or is_public(request.url.path) or request.session.get("user"):
             return await call_next(request)
         if request.method == "GET" and "text/html" in request.headers.get("accept", ""):
             return RedirectResponse("/login", status_code=303)

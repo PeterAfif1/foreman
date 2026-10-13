@@ -9,6 +9,7 @@ A lead has two separate states:
 """
 
 import json
+import secrets
 import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -46,6 +47,15 @@ CREATE TABLE IF NOT EXISTS stages (
     name TEXT NOT NULL,
     position INTEGER NOT NULL,
     closed INTEGER NOT NULL DEFAULT 0  -- done or lost: no follow-up nudges
+);
+
+-- Public chat conversations. The state is the agent's JSON (messages, details).
+CREATE TABLE IF NOT EXISTS chats (
+    id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    state TEXT NOT NULL,
+    lead_id INTEGER REFERENCES leads(id)
 );
 
 -- Every change to a card, oldest first. Card history and "no answer in 6 days"
@@ -354,6 +364,29 @@ class Store:
             )
             self._log(conn, lead_id, "edited", {"fields": changed})
         return self.get(lead_id)
+
+    def new_chat(self, state_json: str) -> str:
+        chat_id = secrets.token_urlsafe(16)  # unguessable, so one visitor can't read another's chat
+        now = _now()
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT INTO chats (id, created_at, updated_at, state) VALUES (?, ?, ?, ?)",
+                (chat_id, now, now, state_json),
+            )
+        return chat_id
+
+    def get_chat(self, chat_id: str) -> str | None:
+        with self._conn() as conn:
+            row = conn.execute("SELECT state FROM chats WHERE id = ?", (chat_id,)).fetchone()
+        return row["state"] if row else None
+
+    def save_chat(self, chat_id: str, state_json: str, lead_id: int | None = None) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                "UPDATE chats SET state = ?, updated_at = ?, lead_id = COALESCE(?, lead_id) "
+                "WHERE id = ?",
+                (state_json, _now(), lead_id, chat_id),
+            )
 
     def stages(self) -> list[Stage]:
         with self._conn() as conn:

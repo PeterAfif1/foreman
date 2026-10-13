@@ -3,7 +3,14 @@ import logging
 import pytest
 from fastapi.testclient import TestClient
 
-from foreman.api import HideHealthChecks, create_app, get_extractor, get_replier, get_store
+from foreman.api import (
+    HideHealthChecks,
+    create_app,
+    get_agent,
+    get_extractor,
+    get_replier,
+    get_store,
+)
 from foreman.auth import AuthSettings, load_settings
 from foreman.extract import Extraction
 from foreman.schema import Lead
@@ -41,6 +48,25 @@ def fake_reply(text, lead):
     )
 
 
+def fake_agent(state, message, today):
+    """Pretends to be the chat agent: the job on the first message, then contact."""
+    from foreman.agent import Turn
+
+    if message == "crash":
+        raise RuntimeError("model down")
+    state.customer_turns += 1
+    state.messages.append({"role": "user", "content": message})
+    if state.customer_turns == 1:
+        state.details.update(job_types=["roofing"], customer_name="Mike")
+        reply = "Got it Mike. Best number?"
+    else:
+        state.details["contact"] = message
+        state.status = "submitted"
+        reply = "Thanks, the team will be in touch."
+    state.messages.append({"role": "assistant", "content": reply})
+    return Turn(reply=reply, done=state.status != "open", submitted=state.status == "submitted")
+
+
 PASSWORD = "correct horse battery"
 
 
@@ -50,6 +76,7 @@ def make_client(tmp_path, auth):
     app.dependency_overrides[get_store] = lambda: store
     app.dependency_overrides[get_extractor] = lambda: fake_extract
     app.dependency_overrides[get_replier] = lambda: fake_reply
+    app.dependency_overrides[get_agent] = lambda: fake_agent
     return TestClient(app)
 
 
@@ -430,3 +457,77 @@ def test_concurrent_first_requests_share_one_store(tmp_path, monkeypatch):
         stores = list(pool.map(lambda _: api_module.get_store(), range(8)))
     assert len({id(s) for s in stores}) == 1
     api_module._open_store.cache_clear()
+
+
+def test_customer_chat_needs_no_login_and_creates_a_card(secured):
+    r = secured.post("/public/chat", json={"message": "roof is leaking, I'm Mike"})
+    assert r.status_code == 200
+    first = r.json()
+    assert first["chat_id"] and not first["done"]
+    r = secured.post("/public/chat", json={"chat_id": first["chat_id"], "message": "818-555-0101"})
+    assert r.json()["done"] is True
+    # The card is on the board, behind the login.
+    assert secured.get("/api/leads").status_code == 401
+    secured.post("/login", json={"password": PASSWORD})
+    [card] = secured.get("/api/leads").json()
+    assert card["source"] == "chat"
+    assert card["status"] == "pending"
+    assert card["stage"] == "new"
+    assert card["text"].startswith("Customer: roof is leaking")
+    assert card["extracted"]["contact"] == "818-555-0101"
+
+
+def test_quote_page_is_public(secured):
+    assert secured.get("/quote").status_code == 200
+
+
+def test_finished_chat_stays_closed(client):
+    chat_id = client.post("/public/chat", json={"message": "roof"}).json()["chat_id"]
+    client.post("/public/chat", json={"chat_id": chat_id, "message": "818-555-0101"})
+    client.post("/public/chat", json={"chat_id": chat_id, "message": "818-555-0101"})
+    assert len(client.get("/api/leads").json()) == 1
+
+
+def test_unknown_chat_is_404(client):
+    r = client.post("/public/chat", json={"chat_id": "nope", "message": "hi"})
+    assert r.status_code == 404
+
+
+def test_honeypot_stops_bots(client):
+    r = client.post("/public/chat", json={"message": "hi", "website": "http://spam.example"})
+    assert r.json() == {"chat_id": None, "reply": "Thanks!", "done": True}
+    assert client.get("/api/leads").json() == []
+
+
+def test_too_many_messages_are_refused(client):
+    client.app.state.chat_limits.messages.limit = 2
+    chat_id = client.post("/public/chat", json={"message": "a"}).json()["chat_id"]
+    client.post("/public/chat", json={"chat_id": chat_id, "message": "b"})
+    r = client.post("/public/chat", json={"chat_id": chat_id, "message": "c"})
+    assert r.status_code == 429
+
+
+def test_new_chat_limit_politely_turns_people_away(client):
+    client.app.state.chat_limits.new_chats.limit = 1
+    client.post("/public/chat", json={"message": "a"})
+    r = client.post("/public/chat", json={"message": "b"}).json()
+    assert r["done"] is True and r["chat_id"] is None
+    assert "call or text" in r["reply"]
+
+
+def test_agent_failure_keeps_the_chat(client):
+    chat_id = client.post("/public/chat", json={"message": "roof"}).json()["chat_id"]
+    r = client.post("/public/chat", json={"chat_id": chat_id, "message": "crash"})
+    assert r.status_code == 200 and r.json()["done"] is False
+    r = client.post("/public/chat", json={"chat_id": chat_id, "message": "818-555-0101"})
+    assert r.json()["done"] is True
+
+
+def test_rate_limiter_window():
+    from foreman.limits import RateLimiter
+
+    limiter = RateLimiter(limit=2, window=10)
+    assert limiter.allow("a", now=0) and limiter.allow("a", now=1)
+    assert not limiter.allow("a", now=2)
+    assert limiter.allow("b", now=2)  # per key
+    assert limiter.allow("a", now=10.5)  # the first one expired

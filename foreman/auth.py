@@ -13,7 +13,14 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
-PUBLIC_PATHS = {"/login", "/health", "/favicon.svg"}
+PUBLIC_PATHS = {"/login", "/health", "/favicon.svg", "/quote"}
+PUBLIC_PREFIX = "/public/"  # the customer chat API
+
+
+def is_public(path: str) -> bool:
+    return path in PUBLIC_PATHS or path.startswith(PUBLIC_PREFIX)
+
+
 MAX_FAILURES = 5
 LOCKOUT_SECONDS = 15 * 60
 SESSION_DAYS = 30

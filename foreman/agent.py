@@ -40,8 +40,14 @@ class SaveDetails(BaseModel):
     contact: str | None = Field(default=None, description="Phone number or email they gave.")
     job_types: list[JobType] | None = None
     location: str | None = Field(default=None, description="City, neighborhood or address.")
-    budget_min: int | None = None
-    budget_max: int | None = None
+    budget_min: int | None = Field(
+        default=None,
+        description="Whole dollars. 'About 15k' or 'maybe 15k' sets both min and max to 15000. "
+        "'At least 10k' sets only min.",
+    )
+    budget_max: int | None = Field(
+        default=None, description="Whole dollars. 'Under 20k' sets only max to 20000."
+    )
     deadline: str | None = Field(default=None, description="YYYY-MM-DD, from today's date.")
     urgency: Urgency | None = None
     scope_summary: str | None = Field(default=None, description="1 to 2 sentences on the job.")
