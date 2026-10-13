@@ -186,3 +186,23 @@ def test_dashes_are_replaced_before_sending():
     state = ChatState()
     turn, _ = run(state, "hi", say("Got it\u2014what's the address?"))
     assert turn.reply == "Got it, what's the address?"
+
+
+def test_casual_today_is_not_a_promise():
+    from foreman.guards import invented_when
+
+    said = "am I talking to a real person?"
+    assert invented_when("I'm an assistant. How can I help you today?", said) == []
+    assert invented_when("We can come out today to look.", said) == ["today"]
+    assert invented_when("Someone can be there this week.", said) == ["this week"]
+    assert invented_when("We could do Thursday.", said) == ["Thursday"]
+
+
+def test_zero_budget_is_not_stated():
+    from datetime import date
+
+    from foreman.rules import apply_rules
+
+    lead = Lead(is_lead=True, budget_min=0, budget_max=8000)
+    out = apply_rules(lead, "under 8k", date(2026, 10, 12))
+    assert (out.budget_min, out.budget_max) == (None, 8000)
