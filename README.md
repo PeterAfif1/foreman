@@ -2,9 +2,42 @@
 
 ![CI](https://github.com/PeterAfif1/foreman/actions/workflows/ci.yml/badge.svg)
 
-A job board for contractors with AI intake. A messy text or email goes in and becomes a job card, with anything the customer didn't say left blank instead of guessed. Cards move through the pipeline like Trello: new lead, contacted, site visit, quote sent, won, in progress, done.
+AI intake for contractors, built for a small construction business. Three AI components, each with its own evals: an **extractor** that turns messy texts into structured jobs, a **customer chat agent** that collects a job request using tools, and **reply drafting**. They feed a Trello-style job board.
 
-I'm building it for a real small construction business. The demo runs on synthetic leads.
+The demo runs on synthetic leads I reviewed and labeled by hand. No customer data is in this repo.
+
+## The AI parts
+
+| Component | What it does | How it's tested | Result (3 runs, gpt-4o-mini) |
+|---|---|---|---|
+| **Extractor** | Message in, validated `Lead` out (structured outputs), then code rules | 27 hand-labeled leads | **97.3%** field accuracy, **1.4%** hallucination (from 96.0% / 5.9%) |
+| **Chat agent** | Multi-turn web chat with 3 tools; code gates and output guardrails | 26 simulated customers with hidden facts + 8 attacks | **4.0%** hallucination (from 10.1%), **0** lost leads, **24/24** attacks blocked |
+| **Reply drafts** | Code picks what to ask, the model writes it, a person sends it | Rule checks on every draft | **77/78** drafts pass every check |
+
+**Hallucination rate** is the number I watch most: how often the AI fills in something the customer never said. A blank gets asked about. A made-up budget gets trusted.
+
+Full history of every version, including the ones that got worse: [docs/EVALS.md](docs/EVALS.md).
+
+## How it works
+
+```
+text / email / call notes ──> extractor ──┐
+                                          ├──> code rules ──> card on the board ──> person checks it
+customer on /quote ──> chat agent ────────┘        │                                      │
+        (tools: SaveDetails, Finish, EndChat)       │                         draft reply, they send it
+                                                    └── deadline math, names must appear in the text,
+                                                        "flexible" needs timing words, $0 = not stated
+```
+
+- **The model handles language; code handles anything exact.** Date math, whether a name really appears in the message, when a chat may finish, and whether a reply mentions a price or date the customer never said are all decided in plain Python ([rules.py](foreman/rules.py), [guards.py](foreman/guards.py), [agent.py](foreman/agent.py)). Every eval stores the model's raw answer next to the final one, so the effect of the rules is measured, not assumed.
+- **Guardrails on every customer-facing message.** A reply that mentions a price or date the customer didn't gets one rewrite, then a safe fallback.
+- **Nothing is sent automatically.** The chat only collects details; replies are drafted for a person to edit and send.
+
+## What the evals caught
+
+- **Prompt fixes that made things worse.** Extractor v2 doubled hallucinations; ablations traced it to one prompt rule. Chat agent a2 cut hallucinations but started losing real leads, which only showed up because lost leads are measured, not just field accuracy.
+- **My own bugs.** A guardrail that flagged "how can I help you *today*", an answer key that expected budgets the agent skips on purpose, a check whose regex never matched "Hi Carlos". Each one fixed and re-measured.
+- **The same trap twice.** "Budget is flexible" became flexible *timing* in both the extractor and the agent. Prompts kept losing; a 10-line code rule fixed both.
 
 ## Example
 
@@ -14,76 +47,47 @@ hey saw ur truck on maple st. kitchen redo maybe floors too. under 30k? call 818
 
 ```json
 {
-  "is_lead": true,
   "customer_name": "dana",
   "contact": "818 555 0142",
   "job_types": ["kitchen", "flooring"],
   "location": "maple st",
   "budget_max": 30000,
-  "urgency": null,
-  "missing_info": ["What specific work do you want done in the kitchen?", "What type of flooring are you considering?"]
+  "urgency": null
 }
 ```
 
-Real output from v3, trimmed to the main fields. This run got one thing wrong: "maple st" is where they saw the truck, not where the job is. It does that in about 1 of 3 runs, so the example is in the eval set now.
-
-## Results
-
-27 hand-reviewed leads, 3 runs per version, gpt-4o-mini.
-
-| | Accuracy | Hallucination rate | Cost / lead |
-|---|---|---|---|
-| v1, prompt only | 96.0% | 5.9% | $0.0002 |
-| **v3, prompt + code rules** | **97.3%** | **1.4%** | $0.0002 |
-
-**Hallucination rate** is the number I care about most: how often the model fills in something the customer never said. A blank gets asked about. A made-up budget gets trusted.
-
-Every version, what changed, and why one of them got worse: [docs/EVALS.md](docs/EVALS.md).
-
-## How it works
-
-1. **The model reads the message.** OpenAI structured outputs return a validated `Lead` ([schema.py](foreman/schema.py)), never free text.
-2. **Code checks it.** Plain Python handles what models are bad at ([rules.py](foreman/rules.py)): working out whether a deadline is within 60 days, and making sure a name actually appears in the message instead of being guessed from an email address.
-3. **The eval scores it** against labels I write by hand before the model sees the example. Every run is saved with the commit, model, prompt version and every prediction ([eval/](eval/)).
-
-## Key decisions
-
-- **Blank beats a guess.** Every field is null unless the message says it.
-- **Rules in code, not the prompt.** Asking the model to do date math made scores drop. Having it extract a date and letting Python do the math fixed it.
-- **Guesses are allowed if they're labeled.** A name guessed from an email goes in `name_hint`, shown as "maybe".
-- **Several runs per version.** Identical runs swung 8 points early on, so no single run counts.
-- **No framework.** One structured call needs the OpenAI SDK and Pydantic, nothing else.
+Real extractor output, trimmed. This run got one thing wrong: "maple st" is where they saw the truck, not the job. It does that in about 1 of 3 runs, so the example is in the eval set.
 
 ## Run it
 
 ```bash
 uv sync
-cp .env.example .env      # add your OpenAI key
-uv run pytest             # no API calls
-uv run python -m eval.run_eval --label test
+cp .env.example .env              # OpenAI key, plus a password and secret key for the app
+uv run pytest                     # 170 tests, no API calls
+uv run python -m eval.run_eval --label test          # extractor eval
+uv run python -m eval.run_chat_eval --label test     # chat agent eval
+uv run python -m eval.run_reply_eval --label test    # reply eval
 ```
 
-Or run the board at http://localhost:8000 (API docs at `/docs`). It needs a password and a secret key in `.env` (see `.env.example`):
+The app (board at http://localhost:8000, customer chat at `/quote`):
 
 ```bash
 cd web && npm install && npm run build && cd ..
-uv run python -m scripts.seed_demo     # demo board from the synthetic leads
+uv run python -m scripts.seed_demo
 FOREMAN_DB=data/demo.db uv run uvicorn foreman.api:create_app --factory --reload
 ```
 
-Working on the board itself? Run `npm run dev` in `web/` for live reload on port 5173. It forwards API calls to port 8000.
+Or `docker compose up --build`.
 
-Or the production image:
+## Stack
 
-```bash
-docker compose up --build
-```
-
-Paste a message and it becomes a card in New lead. Open a card to check what the AI pulled out, fix anything wrong, draft a reply that asks for what's missing (you send it yourself), and drag the card along as the job moves. Every fix is recorded: `/api/stats` shows how often each field needed fixing, and `/api/export` turns checked cards into eval data (gitignored, never committed).
+Python 3.12, OpenAI (structured outputs and tool calling, no agent framework), Pydantic, FastAPI, SQLite, React + Vite + Tailwind, Docker, GitHub Actions (tests, front-end and Docker builds, and the extractor eval on `main`).
 
 ## Next
 
-- Real leads from the business (anonymized, never committed)
-- Deploy so it works from a phone, then tracing, then RAG over past quotes for rough estimates
+- Tracing: cost, latency and failures per AI call
+- RAG over past quotes for rough estimates
+- An MCP server exposing the same tools
+- A CI gate that fails the build if hallucinations go up
 
 MIT license

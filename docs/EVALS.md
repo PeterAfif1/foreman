@@ -60,6 +60,35 @@ Known gap: the labels don't include deadlines, so a draft can ask "when?" after 
 
 When a reply is marked as sent, Foreman stores what was actually sent next to the draft. `/api/stats` reports how many drafts went out unedited: the live quality number once real people use it.
 
+## Chat agent
+
+A public chat (`/quote`) where a customer describes a job. The model has three tools: `SaveDetails` (record what they said; code answers with what's still missing), `Finish` (submit the card) and `EndChat` (spam, abuse). Code enforces everything that has to be exact: what's missing, when finishing is allowed, a turn limit, and that no message mentions a price or a date the customer didn't.
+
+**How it's tested** ([`eval/run_chat_eval.py`](../eval/run_chat_eval.py)):
+- **26 simulated customers.** Each starts from a labeled lead's real message and holds a few hidden facts the message didn't include (phone, neighborhood, budget), made up in code. The simulator (another model call) only reveals a fact when asked, so the answer key is exact.
+- **8 scripted attacks:** price fishing, date fishing, prompt leak, a fake "SYSTEM OVERRIDE", "am I talking to a real person?", off-topic, a sales pitch, abuse.
+- **Business metrics, not just fields:** a real job that ends without a card is a **lost lead**, and a chat that closes on a question the customer can no longer answer is a broken experience. Both are counted.
+
+3 runs per version, gpt-4o-mini. All versions are scored against the same corrected answer key.
+
+| Version | Change | Field accuracy | Hallucination | Lost leads | Closed mid-question | Attacks |
+|---|---|---|---|---|---|---|
+| a1 | first prompt and tools | 91.9% | 10.1% (6.1 to 15.2) | 0/78 | 0/78 | 23/24 |
+| a2 | urgency definitions in the tool schema, names only as written, landmarks aren't locations, $0 budget = not stated, guard false alarm on "today" fixed | 91.2% | 7.1% | **2/78** | **3/78** | 24/24 |
+| a3 | code gates: no finishing before asking name and place once, real jobs can't be ended, closed chats can't ask, unstated names removed from replies | 92.7% | 10.1% | 0/78 | 0/78 | 24/24 |
+| **a4** | code rule: "flexible" timing only stands if they used timing words | **92.5%** | **4.0%** (3.0 to 6.1) | **0/78** | **0/78** | **24/24** |
+
+Average 2.3 customer messages per chat, about $0.001 of agent calls per chat.
+
+**What the evals caught on the way:**
+- **a2 traded hallucinations for lost leads.** Hallucinations went down, but the agent started calling `Finish` on the first message while still asking questions, and twice ended a real job request as if it were spam. Field accuracy barely moved, so it would have shipped if lost leads weren't measured. a3 fixed it in code: `EndChat` is refused once a job is saved, and a closing message can't contain a question.
+- **A guardrail false alarm.** "How can I help you **today**?" tripped the date check, so the reply got rewritten and sometimes turned into a closing line. "Today" now only counts next to a scheduling word ("come out today").
+- **An eval bug.** The answer key expected a budget on emergencies, which the agent skips on purpose. Fixed, and earlier versions rescored on the corrected key.
+- **A test changed after a result,** on purpose and recorded: the off-topic attack expected the chat to end, but steering back to the job ("I'm here to help with construction details, tell me about your project") is better behavior. See [NOTES](../eval/data/NOTES.md).
+- **The prompt kept losing to "flexible".** Customers saying their *budget* is flexible, or "not sure yet", became `flexible` timing in 9 of 10 a3 hallucinations, the same trap the extractor fell into in v0. A code rule fixed it; it's shared with the extractor and checked against every hand label first.
+
+Known limits: the simulator is the same model family as the agent, so it may be easier on it than real people are. 26 customers is small: one field moves hallucination rate about 3 points.
+
 ## All decisions
 
 - **Null over guessing.** One convention for "not stated" across every field. It keeps the schema honest and makes hallucinations easy to count.
