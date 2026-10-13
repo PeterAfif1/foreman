@@ -109,3 +109,24 @@ export const EMPTY_FIELDS: LeadFields = {
   scope_summary: null,
   missing_info: [],
 };
+
+export interface UsageStats {
+  calls: number;
+  errors: number;
+  error_rate: number | null;
+  cost_usd: number;
+  input_tokens: number;
+  output_tokens: number;
+  p50_ms: number | null;
+  p95_ms: number | null;
+}
+
+export interface Usage {
+  days: number;
+  total: UsageStats;
+  by_feature: Record<string, UsageStats>;
+  cost_by_day: { day: string; cost_usd: number }[];
+  cost_per_lead: number | null;
+  guard_rewrites: number;
+  recent_errors: { at: string; feature: string; error: string }[];
+}

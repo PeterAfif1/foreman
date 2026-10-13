@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "./api";
 import { Board, groupByStage, type Columns } from "./Board";
 import { AddLead } from "./AddLead";
+import { Usage } from "./Usage";
 import { LeadPanel } from "./LeadPanel";
 import { go, useRoute } from "./route";
 import type { Card, Stage, Stats } from "./types";
@@ -109,8 +110,11 @@ export default function App() {
           <NavLink active={onBoard} href="#/board">
             Board
           </NavLink>
-          <NavLink active={!onBoard} href="#/add">
+          <NavLink active={route.page === "add"} href="#/add">
             Add a lead
+          </NavLink>
+          <NavLink active={route.page === "usage"} href="#/usage">
+            AI usage
           </NavLink>
           <a
             href="/quote"
@@ -160,8 +164,10 @@ export default function App() {
             onMove={onMove}
             onOpen={(c) => go({ page: "board", card: c.id })}
           />
-        ) : (
+        ) : route.page === "add" ? (
           <AddLead onAdded={reload} />
+        ) : (
+          <Usage />
         )}
       </main>
 
@@ -173,8 +179,11 @@ export default function App() {
         <TabLink active={onBoard} href="#/board" icon="▦">
           Board
         </TabLink>
-        <TabLink active={!onBoard} href="#/add" icon="＋">
+        <TabLink active={route.page === "add"} href="#/add" icon="＋">
           Add a lead
+        </TabLink>
+        <TabLink active={route.page === "usage"} href="#/usage" icon="$">
+          AI usage
         </TabLink>
       </nav>
 
