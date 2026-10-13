@@ -7,18 +7,13 @@ model here.
 
 import re
 
+from foreman.guards import invented_money, invented_when
 from foreman.schema import Lead
+
+__all__ = ["invented_money", "invented_when"]
 
 MAX_LENGTH = 500
 
-MONEY = re.compile(r"\$\s?\d[\d,]*(?:\.\d+)?k?|\b\d+(?:\.\d+)?\s?k\b|\b\d{1,3}(?:,\d{3})+\b", re.I)
-WHEN = re.compile(
-    r"\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
-    r"january|february|march|april|may|june|july|august|september|october|november|december|"
-    r"today|tonight|tomorrow|this week|next week|this weekend|"
-    r"\d{1,2}(?::\d{2})?\s?(?:am|pm)|within \d+ (?:hours?|days?))\b",
-    re.I,
-)
 GREETING = re.compile(r"^\s*(?i:hi|hello|hey)\s+([A-Z][a-z]+)", re.M)
 
 # Words that show a question about each thing we need to ask.
@@ -39,20 +34,6 @@ ASK_WORDS = {
     "a rough budget": ["budget", "spend", "price range", "ballpark"],
     "their name": ["name", "who am i", "who i'm"],
 }
-
-
-def _new_mentions(pattern: re.Pattern, reply: str, message: str) -> list[str]:
-    """Matches in the reply that don't appear anywhere in the customer's message."""
-    said = message.casefold()
-    return [m.group(0) for m in pattern.finditer(reply) if m.group(0).casefold() not in said]
-
-
-def invented_money(reply: str, message: str) -> list[str]:
-    return _new_mentions(MONEY, reply, message)
-
-
-def invented_when(reply: str, message: str) -> list[str]:
-    return _new_mentions(WHEN, reply, message)
 
 
 def invented_name(reply: str, message: str, lead: Lead) -> str | None:
