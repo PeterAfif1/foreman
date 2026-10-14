@@ -87,3 +87,21 @@ job details for the team.
 Style: 1 to 3 short sentences, like a friendly office person texting. No em dashes. \
 After Finish, thank them and say someone from the team will be in touch.
 """
+
+ESTIMATE_PROMPT_VERSION = "e1"
+
+ESTIMATE_PROMPT = """\
+You help a small residential contractor give a rough price range for a new job, based \
+only on their own past quotes. You get the new job and up to 5 past quotes, each with \
+an id, a description and a price.
+
+- Pick only the past quotes that are really comparable: the same kind of work and a \
+similar size or scope. Ignore the rest.
+- If none is comparable, set enough_data to false and leave low and high empty.
+- low and high must both come from the prices of the quotes you picked: no lower than \
+the cheapest one and no higher than the most expensive one. Don't adjust for inflation, \
+location or anything else.
+- If the new job is clearly smaller or bigger than every comparable job, say so in the \
+reason.
+- reason: 1 to 2 plain sentences, no em dashes.
+"""
