@@ -7,6 +7,7 @@ from foreman.api import (
     HideHealthChecks,
     create_app,
     get_agent,
+    get_estimator,
     get_extractor,
     get_replier,
     get_store,
@@ -73,6 +74,15 @@ def fake_agent(state, message, today):
     return Turn(reply=reply, done=state.status != "open", submitted=state.status == "submitted")
 
 
+def fake_estimator(lead, text):
+    from foreman.rag import Estimate, Quote
+
+    if len(lead.job_types) != 1:
+        return Estimate("multiple_jobs")
+    past = Quote("Q-050", "2025-03-01", ("kitchen",), "Burbank", "Paint cabinets", 9500, "x")
+    return Estimate("ok", 9000, 10000, [past, past], "Two similar kitchen refreshes.")
+
+
 PASSWORD = "correct horse battery"
 
 
@@ -86,6 +96,7 @@ def make_client(tmp_path, auth):
     app.dependency_overrides[get_extractor] = lambda: fake_extract
     app.dependency_overrides[get_replier] = lambda: fake_reply
     app.dependency_overrides[get_agent] = lambda: fake_agent
+    app.dependency_overrides[get_estimator] = lambda: fake_estimator
     return TestClient(app)
 
 
@@ -574,3 +585,21 @@ def test_usage_summary(client):
 
 def test_usage_needs_login(secured):
     assert secured.get("/api/usage").status_code == 401
+
+
+def test_estimate_on_a_card(client):
+    lead = client.post("/api/leads", json={"text": "kitchen"}).json()
+    r = client.post(f"/api/leads/{lead['id']}/estimate").json()
+    assert (r["status"], r["low"], r["high"]) == ("ok", 9000, 10000)
+    assert r["cited"][0]["id"] == "Q-050" and r["synthetic_data"] is True
+    assert "family" not in r["cited"][0]
+    last = client.get(f"/api/leads/{lead['id']}/events").json()[-1]
+    assert last["kind"] == "estimated" and last["detail"]["low"] == 9000
+
+
+def test_estimate_needs_login(secured):
+    assert secured.post("/api/leads/1/estimate").status_code == 401
+
+
+def test_estimate_missing_card(client):
+    assert client.post("/api/leads/999/estimate").status_code == 404

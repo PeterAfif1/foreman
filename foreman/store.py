@@ -84,7 +84,8 @@ CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lead_id INTEGER NOT NULL REFERENCES leads(id),
     at TEXT NOT NULL,
-    kind TEXT NOT NULL,  -- created | approved | moved | note | edited | reply_drafted | reply_sent
+    -- created | approved | moved | note | edited | reply_drafted | reply_sent | estimated
+    kind TEXT NOT NULL,
     detail TEXT          -- JSON
 );
 """
@@ -329,6 +330,10 @@ class Store:
         with self._conn() as conn:
             self._log(conn, lead_id, "note", {"text": text})
         return self.events(lead_id)[-1]
+
+    def log_event(self, lead_id: int, kind: str, detail: dict) -> None:
+        with self._conn() as conn:
+            self._log(conn, lead_id, kind, detail)
 
     def log_draft(self, lead_id: int, text: str, prompt_version: str) -> None:
         with self._conn() as conn:

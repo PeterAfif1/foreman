@@ -28,7 +28,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.sessions import SessionMiddleware
 
-from foreman import tracing
+from foreman import rag, tracing
 from foreman.agent import CLOSED, ChatState
 from foreman.agent import respond as agent_respond
 from foreman.auth import (
@@ -85,10 +85,23 @@ def get_agent():
     return agent_respond
 
 
+@lru_cache
+def _quote_index() -> "rag.QuoteIndex":
+    from openai import OpenAI
+
+    cache = Path(os.getenv("FOREMAN_DB", DEFAULT_DB)).parent / "embeddings" / "quotes.json"
+    return rag.QuoteIndex(rag.load_quotes(), rag.openai_embedder(OpenAI()), cache=cache)
+
+
+def get_estimator():
+    return lambda lead, text: rag.estimate(lead, text, _quote_index())
+
+
 StoreDep = Annotated[Store, Depends(get_store)]
 ExtractorDep = Annotated[object, Depends(get_extractor)]
 ReplierDep = Annotated[object, Depends(get_replier)]
 AgentDep = Annotated[object, Depends(get_agent)]
+EstimatorDep = Annotated[object, Depends(get_estimator)]
 public = APIRouter(prefix="/public")  # no login: the customer chat
 
 
@@ -324,6 +337,65 @@ def reply_sent(lead_id: int, body: SentIn, store: StoreDep):
     if record is None:
         raise HTTPException(404, "lead not found")
     return LeadOut.from_record(record)
+
+
+class PastJob(BaseModel):
+    id: str
+    description: str
+    price: int
+    date: str
+    location: str
+
+
+class EstimateOut(BaseModel):
+    status: str  # ok | not_enough | multiple_jobs | not_a_lead
+    low: int | None
+    high: int | None
+    reason: str
+    cited: list[PastJob]
+    synthetic_data: bool = True  # the demo's past quotes are made up
+    prompt_version: str
+
+
+@api.post("/leads/{lead_id}/estimate", response_model=EstimateOut)
+def estimate_lead(lead_id: int, store: StoreDep, run: EstimatorDep):
+    """A rough range from similar past jobs. For the business only, never customers."""
+    record = store.get(lead_id)
+    if record is None:
+        raise HTTPException(404, "lead not found")
+    fields = record.approved or record.extracted
+    if fields is None:
+        raise HTTPException(409, "fill in the card first")
+    with tracing.request_context() as request_id:
+        est = run(fields, record.text)
+    store.link_calls(lead_id, request_id=request_id)
+    store.log_event(
+        lead_id,
+        "estimated",
+        {
+            "status": est.status,
+            "low": est.low,
+            "high": est.high,
+            "cited": [q.id for q in est.cited],
+        },
+    )
+    return EstimateOut(
+        status=est.status,
+        low=est.low,
+        high=est.high,
+        reason=est.reason,
+        cited=[
+            PastJob(
+                id=q.id,
+                description=q.description,
+                price=q.price_total,
+                date=q.date,
+                location=q.location,
+            )
+            for q in est.cited
+        ],
+        prompt_version=est.prompt_version,
+    )
 
 
 @api.get("/leads/{lead_id}/events", response_model=list[EventOut])
