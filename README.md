@@ -2,9 +2,9 @@
 
 ![CI](https://github.com/PeterAfif1/foreman/actions/workflows/ci.yml/badge.svg)
 
-AI intake for contractors, built for a small construction business. Three AI components, each with its own evals: an **extractor** that turns messy texts into structured jobs, a **customer chat agent** that collects a job request using tools, and **reply drafting**. They feed a Trello-style job board.
+AI intake for contractors, built for a small construction business. Four AI components, each with its own evals: an **extractor** that turns messy texts into structured jobs, a **customer chat agent** that collects a job request using tools, **reply drafting**, and **rough estimates** from similar past jobs (RAG). They feed a Trello-style job board, and every AI call is traced.
 
-The demo runs on synthetic leads I reviewed and labeled by hand. No customer data is in this repo.
+The demo runs on synthetic leads I reviewed and labeled by hand, and synthetic past quotes with made-up prices. No customer data is in this repo.
 
 ## The AI parts
 
@@ -13,6 +13,7 @@ The demo runs on synthetic leads I reviewed and labeled by hand. No customer dat
 | **Extractor** | Message in, validated `Lead` out (structured outputs), then code rules | 27 hand-labeled leads | **97.3%** field accuracy, **1.4%** hallucination (from 96.0% / 5.9%) |
 | **Chat agent** | Multi-turn web chat with 3 tools; code gates and output guardrails | 26 simulated customers with hidden facts + 8 attacks | **4.0%** hallucination (from 10.1%), **0** lost leads, **24/24** attacks blocked |
 | **Reply drafts** | Code picks what to ask, the model writes it, a person sends it | Rule checks on every draft | **77/78** drafts pass every check |
+| **Rough estimates (RAG)** | Embed the job, retrieve 5 similar past quotes, the model picks the comparable ones, code checks the range comes from them | 31 cases incl. 5 jobs with no data | **95.5%** right job type ranked first, **100%** ranges in the right band vs **36%** for a plain min-max baseline, **5/5** uncovered jobs declined |
 
 **Hallucination rate** is the number I watch most: how often the AI fills in something the customer never said. A blank gets asked about. A made-up budget gets trusted.
 
@@ -31,6 +32,7 @@ customer on /quote ──> chat agent ────────┘        │    
 
 - **The model handles language; code handles anything exact.** Date math, whether a name really appears in the message, when a chat may finish, and whether a reply mentions a price or date the customer never said are all decided in plain Python ([rules.py](foreman/rules.py), [guards.py](foreman/guards.py), [agent.py](foreman/agent.py)). Every eval stores the model's raw answer next to the final one, so the effect of the rules is measured, not assumed.
 - **Guardrails on every customer-facing message.** A reply that mentions a price or date the customer didn't gets one rewrite, then a safe fallback.
+- **Estimates are grounded in code, not trust.** Every cited quote must be one that was retrieved, and the range must sit inside the cited prices. Nothing similar means no estimate. Staff only: customers never get a price.
 - **Nothing is sent automatically.** The chat only collects details; replies are drafted for a person to edit and send.
 - **Every AI call is traced:** feature, model, prompt version, tokens, cost, latency and failures, linked to the card it produced ([tracing.py](foreman/tracing.py)). The AI usage page shows cost per day and per lead, error rates, and p50/p95 latency per feature. Traces hold metadata only, never message text, so customer data stays on the card.
 
@@ -86,7 +88,6 @@ Python 3.12, OpenAI (structured outputs and tool calling, no agent framework), P
 
 ## Next
 
-- RAG over past quotes for rough estimates
 - An MCP server exposing the same tools
 - A CI gate that fails the build if hallucinations go up
 

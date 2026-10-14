@@ -89,6 +89,36 @@ Average 2.3 customer messages per chat, about $0.001 of agent calls per chat.
 
 Known limits: the simulator is the same model family as the agent, so it may be easier on it than real people are. 26 customers is small: one field moves hallucination rate about 3 points.
 
+## Rough estimates (RAG)
+
+For the business only: a price range for a new job from its own past quotes. The demo uses **71 synthetic quotes in 21 job families** ([`scripts/generate_quotes.py`](../scripts/generate_quotes.py)): made-up prices, plausible for the area, with price growing with job size inside each family's band. Not market data.
+
+1. **Retrieve:** embed the job (text-embedding-3-small) and take the 5 most similar quotes, with a small bonus for the same job type. 71 quotes don't need a vector database; it's brute-force cosine.
+2. **Choose:** the model picks which of the 5 are really comparable (same work, similar size) and gives a range with a reason.
+3. **Check (code):** cited quotes must be among the retrieved ones, and the range must sit inside the cited prices. Otherwise the range is replaced by the cited prices themselves, and the violation is recorded. No comparable jobs, two jobs on one card, or a top match below the similarity cutoff means no estimate.
+
+**Cases:** the 27 labeled leads mapped to the family they should match (or to "no estimate"), plus 5 jobs the data doesn't cover (pool, solar, HVAC, electrical panel, driveway). The family is the answer key and is never sent to the model.
+
+3 runs, gpt-4o-mini, identical results each run:
+
+| Metric | Result |
+|---|---|
+| Right job family ranked first / in top 5 | 95.5% / 100% (MRR 97%) |
+| Estimated when it should | 21/22 |
+| Declined when it should | 8/9, including all 5 uncovered jobs |
+| Range midpoint inside the right price band | **100%** (model) vs **36%** (min-max of the 5 retrieved, no model) |
+| Median range width | $2,300 to $3,100 (model) vs $16,525 (baseline) |
+| Cited quotes from the right family | 100% |
+| Times the code had to fix the model's range or citations | 0/31 |
+
+**Read this honestly:** prices are generated inside each family's band, so citing the right family almost guarantees an in-band range. The meaningful results are that the model picks the right comparables and declines when nothing fits; the baseline shows what happens without that step.
+
+**The two misses are labeling questions:**
+- *Replacing a few cracked floor tiles:* the model used vinyl-plank installs as comparable. I labeled it "no comparable job"; I think the model is wrong.
+- *Carpet to hardwood in one nursery:* the model declined because every hardwood job in the data is 500 to 1,200 sq ft. I labeled it "estimate", but declining is arguably right. Open for review.
+
+**Similarity cutoff:** covered jobs scored at least 0.579 on their top match, uncovered at most 0.545. A cutoff near 0.56 would separate them perfectly here, but choosing it from these results would be fitting the test set, so it stays at 0.45 and the model's own "not comparable" decision does the work. It needs more cases before tuning.
+
 ## All decisions
 
 - **Null over guessing.** One convention for "not stated" across every field. It keeps the schema honest and makes hallucinations easy to count.
