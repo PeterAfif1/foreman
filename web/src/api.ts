@@ -1,4 +1,14 @@
-import type { Card, CardEvent, Draft, LeadFields, Source, Stage, Stats, Usage } from "./types";
+import type {
+  Card,
+  CardEvent,
+  Draft,
+  EstimateResult,
+  LeadFields,
+  Source,
+  Stage,
+  Stats,
+  Usage,
+} from "./types";
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, {
@@ -33,5 +43,6 @@ export const api = {
   note: (id: number, text: string) => post<CardEvent>(`/api/leads/${id}/notes`, { text }),
   draft: (id: number) => post<Draft>(`/api/leads/${id}/reply`, {}),
   sent: (id: number, text: string) => post<Card>(`/api/leads/${id}/reply/sent`, { text }),
+  estimate: (id: number) => post<EstimateResult>(`/api/leads/${id}/estimate`, {}),
   logout: () => fetch("/logout", { method: "POST" }),
 };

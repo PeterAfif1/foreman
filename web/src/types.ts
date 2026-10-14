@@ -74,7 +74,12 @@ export type CardEvent =
   | { at: string; kind: "note"; detail: { text: string } }
   | { at: string; kind: "edited"; detail: { fields: string[] } }
   | { at: string; kind: "reply_drafted"; detail: { text: string; prompt: string } }
-  | { at: string; kind: "reply_sent"; detail: { text: string; from_draft: boolean; edited: boolean } };
+  | { at: string; kind: "reply_sent"; detail: { text: string; from_draft: boolean; edited: boolean } }
+  | {
+      at: string;
+      kind: "estimated";
+      detail: { status: string; low: number | null; high: number | null; cited: string[] };
+    };
 
 export interface Draft {
   text: string;
@@ -129,4 +134,14 @@ export interface Usage {
   cost_per_lead: number | null;
   guard_rewrites: number;
   recent_errors: { at: string; feature: string; error: string }[];
+}
+
+export interface EstimateResult {
+  status: "ok" | "not_enough" | "multiple_jobs" | "not_a_lead";
+  low: number | null;
+  high: number | null;
+  reason: string;
+  cited: { id: string; description: string; price: number; date: string; location: string }[];
+  synthetic_data: boolean;
+  prompt_version: string;
 }

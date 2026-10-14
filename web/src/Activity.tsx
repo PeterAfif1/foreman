@@ -26,6 +26,10 @@ function describe(e: CardEvent, stageName: (key: string) => string): string {
       return e.detail.text;
     case "reply_drafted":
       return "AI drafted a reply";
+    case "estimated":
+      return e.detail.status === "ok" && e.detail.low !== null && e.detail.high !== null
+        ? `Estimated $${e.detail.low.toLocaleString()} to $${e.detail.high.toLocaleString()} from ${e.detail.cited.length} past jobs`
+        : "Tried an estimate: not enough similar past jobs";
     case "reply_sent":
       return e.detail.from_draft && !e.detail.edited
         ? "Sent the AI's draft as is"

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Activity } from "./Activity";
 import { api } from "./api";
 import { cleanFields, FieldsForm } from "./FieldsForm";
+import { EstimateBox } from "./EstimateBox";
 import { ReplyBox } from "./ReplyBox";
 import type { Card, CardEvent, LeadFields, Stage } from "./types";
 import { EMPTY_FIELDS, sourceLabel } from "./types";
@@ -196,6 +197,13 @@ export function LeadPanel({
                 await loadEvents();
               }}
             />
+          </>
+        )}
+
+        {saved.is_lead && (
+          <>
+            <h3 className={`${heading} mt-8`}>Rough estimate</h3>
+            <EstimateBox key={card.id} card={card} onDone={loadEvents} />
           </>
         )}
 
