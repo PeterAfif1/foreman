@@ -40,24 +40,32 @@ jobs:
       - run: |
           if docker run --rm foreman; then echo "started without a password"; exit 1; fi
 
-  # Costs real API calls and results vary run to run, so it only runs on main or
-  # by hand, and it reports instead of gating. The score gate comes once the
-  # dataset is big enough for one flipped field not to swing the number.
+  # Runs the cheap evals against real models and fails the build if a number
+  # crosses its line in eval/thresholds.json (see eval/gate.py). About 1 cent per
+  # run. The chat agent eval is slower and pricier, so it stays manual.
   eval:
     needs: test
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      RUN: ci-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
-      - name: Run eval
-        if: env.OPENAI_API_KEY != '' && hashFiles('eval/data/synthetic.jsonl') != ''
-        run: uv run python -m eval.run_eval --label ci-${{ github.sha }}
+      - name: Check the API key is set
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo "OPENAI_API_KEY secret is missing"; exit 1; fi
+      # Two extractor runs, so the gate judges the average instead of one run.
+      - run: uv run python -m eval.run_eval --label $RUN-extract-r1
+      - run: uv run python -m eval.run_eval --label $RUN-extract-r2
+      - run: uv run python -m eval.run_reply_eval --label $RUN-reply
+      - run: uv run python -m eval.run_estimate_eval --label $RUN-estimate
+      - name: Gate
+        run: uv run python -m eval.gate --label $RUN
       - uses: actions/upload-artifact@v4
-        if: env.OPENAI_API_KEY != '' && hashFiles('eval/data/synthetic.jsonl') != ''
+        if: always()
         with:
           name: eval-results
-          path: eval/results/*.json
+          path: eval/results/*_ci-*.json
