@@ -1,0 +1,15 @@
+{
+  "_note": "CI fails if any check crosses its line. Lines sit a little past today's results so normal noise passes and a real regression doesn't. Change a line only in its own commit, with the reason.",
+  "extract": {
+    "hallucination_rate": {"max": 0.04, "why": "today 1.4%; the prompt-only version (v1) scored 5.9% and should fail"},
+    "overall_accuracy": {"min": 0.95, "why": "today 97.3%; one field moves it about 0.5 points"}
+  },
+  "reply": {
+    "pass_rate": {"min": 0.9, "why": "today 77 of 78 drafts pass every check"}
+  },
+  "estimate": {
+    "model_in_band": {"min": 0.9, "why": "today 100%; the no-model baseline scores 36%"},
+    "declined_uncovered": {"min": 1.0, "why": "a job with no comparable data must never get a price"},
+    "raw_violations": {"max": 0, "why": "the model should never need code to fix its range or citations"}
+  }
+}
