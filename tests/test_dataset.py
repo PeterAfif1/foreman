@@ -10,7 +10,11 @@ import pytest
 from foreman.schema import Lead
 
 DATA_DIR = Path(__file__).parent.parent / "eval" / "data"
-FILES = sorted(p for p in DATA_DIR.glob("*.jsonl") if not p.name.startswith("real"))
+# Lead datasets only: estimate_cases.jsonl has its own format and checks below.
+NOT_LEADS = {"estimate_cases.jsonl"}
+FILES = sorted(
+    p for p in DATA_DIR.glob("*.jsonl") if not p.name.startswith("real") and p.name not in NOT_LEADS
+)
 ROWS = [
     (path.name, line_no, json.loads(line))
     for path in FILES
@@ -44,3 +48,19 @@ def test_row_is_valid(row):
 
     if label.budget_min is not None and label.budget_max is not None:
         assert label.budget_min <= label.budget_max
+
+
+def test_estimate_cases_point_at_real_leads_and_families():
+    from scripts.generate_quotes import FAMILIES
+
+    lead_ids = {data["id"] for _, _, data in ROWS}
+    cases = [
+        json.loads(line) for line in (DATA_DIR / "estimate_cases.jsonl").read_text().splitlines()
+    ]
+    for case in cases:
+        assert case["expect"] in {"estimate", "not_enough", "multiple_jobs"}
+        assert ("lead" in case) != ("text" in case)
+        if "lead" in case:
+            assert case["lead"] in lead_ids
+        assert set(case["families"]) <= set(FAMILIES)
+        assert bool(case["families"]) == (case["expect"] == "estimate")
