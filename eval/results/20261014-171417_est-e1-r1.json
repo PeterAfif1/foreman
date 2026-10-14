@@ -1,0 +1,1648 @@
+{
+  "label": "est-e1-r1",
+  "kind": "estimate",
+  "timestamp": "2026-10-14T17:14:17+00:00",
+  "git": {
+    "sha": "d483e0a",
+    "dirty": true
+  },
+  "model": "gpt-4o-mini",
+  "prompt_version": "e1",
+  "min_similarity": 0.45,
+  "cases": {
+    "path": "eval/data/estimate_cases.jsonl",
+    "sha256": "cb7311c63d6f",
+    "n": 31
+  },
+  "summary": {
+    "retrieval_hit_at_1": 0.9545454545454546,
+    "retrieval_hit_at_5": 1.0,
+    "mrr": 0.9696969696969696,
+    "estimated_when_it_should": "21/22",
+    "declined_when_it_should": "8/9",
+    "model_in_band": 1.0,
+    "baseline_in_band": 0.36363636363636365,
+    "cited_precision": 1.0,
+    "median_width_model": 3100,
+    "median_width_baseline": 16525.0,
+    "estimates_with_raw_violations": "0/31"
+  },
+  "results": [
+    {
+      "id": "est-gen-001",
+      "expect": "estimate",
+      "families": [
+        "full_bathroom"
+      ],
+      "status": "ok",
+      "low": 19700,
+      "high": 32200,
+      "cited": [
+        "Q-008",
+        "Q-006",
+        "Q-005",
+        "Q-007"
+      ],
+      "cited_families": [
+        "full_bathroom",
+        "full_bathroom",
+        "full_bathroom",
+        "full_bathroom"
+      ],
+      "retrieved": [
+        [
+          "Q-008",
+          "full_bathroom",
+          0.579
+        ],
+        [
+          "Q-006",
+          "full_bathroom",
+          0.574
+        ],
+        [
+          "Q-009",
+          "vanity_toilet",
+          0.563
+        ],
+        [
+          "Q-005",
+          "full_bathroom",
+          0.559
+        ],
+        [
+          "Q-007",
+          "full_bathroom",
+          0.549
+        ]
+      ],
+      "top_similarity": 0.579,
+      "violations": [],
+      "reason": "The past quotes involve full bathroom remodels, which are comparable in scope to the master bathroom remodel requested.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 3250,
+        "high": 32200,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-002",
+      "expect": "estimate",
+      "families": [
+        "lvp_flooring",
+        "hardwood"
+      ],
+      "status": "ok",
+      "low": 4450,
+      "high": 5800,
+      "cited": [
+        "Q-034",
+        "Q-035",
+        "Q-033"
+      ],
+      "cited_families": [
+        "lvp_flooring",
+        "lvp_flooring",
+        "lvp_flooring"
+      ],
+      "retrieved": [
+        [
+          "Q-034",
+          "lvp_flooring",
+          0.733
+        ],
+        [
+          "Q-036",
+          "lvp_flooring",
+          0.724
+        ],
+        [
+          "Q-039",
+          "hardwood",
+          0.659
+        ],
+        [
+          "Q-035",
+          "lvp_flooring",
+          0.653
+        ],
+        [
+          "Q-033",
+          "lvp_flooring",
+          0.646
+        ]
+      ],
+      "top_similarity": 0.733,
+      "violations": [],
+      "reason": "The past quotes involve flooring installation, specifically LVP, in similar areas of the home. The sizes of the jobs are comparable to the new job's scope.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 4450,
+        "high": 16050,
+        "in_band": true
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-003",
+      "expect": "multiple_jobs",
+      "families": [],
+      "status": "multiple_jobs",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [],
+      "top_similarity": null,
+      "violations": [],
+      "reason": "",
+      "uncovered": false,
+      "decision_correct": true
+    },
+    {
+      "id": "est-gen-004",
+      "expect": "not_enough",
+      "families": [],
+      "status": "not_enough",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [],
+      "top_similarity": null,
+      "violations": [],
+      "reason": "",
+      "uncovered": false,
+      "decision_correct": true
+    },
+    {
+      "id": "est-gen-006",
+      "expect": "estimate",
+      "families": [
+        "pipe_repair"
+      ],
+      "status": "ok",
+      "low": 700,
+      "high": 1450,
+      "cited": [
+        "Q-053",
+        "Q-055"
+      ],
+      "cited_families": [
+        "pipe_repair",
+        "pipe_repair"
+      ],
+      "retrieved": [
+        [
+          "Q-053",
+          "pipe_repair",
+          0.726
+        ],
+        [
+          "Q-055",
+          "pipe_repair",
+          0.726
+        ],
+        [
+          "Q-054",
+          "pipe_repair",
+          0.55
+        ],
+        [
+          "Q-051",
+          "water_heater",
+          0.506
+        ],
+        [
+          "Q-050",
+          "water_heater",
+          0.44
+        ]
+      ],
+      "top_similarity": 0.726,
+      "violations": [],
+      "reason": "The past quotes Q-053 and Q-055 are for similar repair work on burst pipes under the kitchen sink.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 700,
+        "high": 3600,
+        "in_band": true
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-007",
+      "expect": "estimate",
+      "families": [
+        "roof_replacement"
+      ],
+      "status": "ok",
+      "low": 15950,
+      "high": 20950,
+      "cited": [
+        "Q-021",
+        "Q-020",
+        "Q-023"
+      ],
+      "cited_families": [
+        "roof_replacement",
+        "roof_replacement",
+        "roof_replacement"
+      ],
+      "retrieved": [
+        [
+          "Q-021",
+          "roof_replacement",
+          0.711
+        ],
+        [
+          "Q-022",
+          "roof_replacement",
+          0.63
+        ],
+        [
+          "Q-025",
+          "roof_repair",
+          0.607
+        ],
+        [
+          "Q-020",
+          "roof_replacement",
+          0.591
+        ],
+        [
+          "Q-023",
+          "roof_replacement",
+          0.586
+        ]
+      ],
+      "top_similarity": 0.711,
+      "violations": [],
+      "reason": "The comparable jobs involve full roof replacements on houses of similar size and scope. They all include similar roofing materials and work.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 800,
+        "high": 21600,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-008",
+      "expect": "estimate",
+      "families": [
+        "deck"
+      ],
+      "status": "ok",
+      "low": 14700,
+      "high": 17900,
+      "cited": [
+        "Q-060",
+        "Q-061"
+      ],
+      "cited_families": [
+        "deck",
+        "deck"
+      ],
+      "retrieved": [
+        [
+          "Q-059",
+          "deck",
+          0.726
+        ],
+        [
+          "Q-062",
+          "deck",
+          0.721
+        ],
+        [
+          "Q-061",
+          "deck",
+          0.611
+        ],
+        [
+          "Q-060",
+          "deck",
+          0.61
+        ],
+        [
+          "Q-022",
+          "roof_replacement",
+          0.506
+        ]
+      ],
+      "top_similarity": 0.726,
+      "violations": [],
+      "reason": "The new deck is similar in scope to the past quotes for decks, specifically the sizes of 180 sq ft and 240 sq ft.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 14700,
+        "high": 29150,
+        "in_band": true
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-009",
+      "expect": "estimate",
+      "families": [
+        "room_addition"
+      ],
+      "status": "ok",
+      "low": 100650,
+      "high": 119350,
+      "cited": [
+        "Q-043",
+        "Q-045",
+        "Q-044"
+      ],
+      "cited_families": [
+        "room_addition",
+        "room_addition",
+        "room_addition"
+      ],
+      "retrieved": [
+        [
+          "Q-043",
+          "room_addition",
+          0.763
+        ],
+        [
+          "Q-045",
+          "room_addition",
+          0.762
+        ],
+        [
+          "Q-044",
+          "room_addition",
+          0.684
+        ],
+        [
+          "Q-046",
+          "sunroom",
+          0.658
+        ],
+        [
+          "Q-048",
+          "sunroom",
+          0.646
+        ]
+      ],
+      "top_similarity": 0.763,
+      "violations": [],
+      "reason": "The past quotes involve room additions with bedrooms and bathrooms, which are similar in scope to the new job. The sizes of the past jobs are close enough to the proposed 400 sq ft addition.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 50800,
+        "high": 119350,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-010",
+      "expect": "estimate",
+      "families": [
+        "shower_retile"
+      ],
+      "status": "ok",
+      "low": 5500,
+      "high": 7000,
+      "cited": [
+        "Q-002",
+        "Q-004",
+        "Q-003"
+      ],
+      "cited_families": [
+        "shower_retile",
+        "shower_retile",
+        "shower_retile"
+      ],
+      "retrieved": [
+        [
+          "Q-002",
+          "shower_retile",
+          0.741
+        ],
+        [
+          "Q-004",
+          "shower_retile",
+          0.727
+        ],
+        [
+          "Q-001",
+          "shower_retile",
+          0.721
+        ],
+        [
+          "Q-003",
+          "shower_retile",
+          0.672
+        ],
+        [
+          "Q-006",
+          "full_bathroom",
+          0.596
+        ]
+      ],
+      "top_similarity": 0.741,
+      "violations": [],
+      "reason": "The jobs involve retiling showers with similar scope and size, ranging from 60 to 80 sq ft.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 5500,
+        "high": 20900,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-011",
+      "expect": "estimate",
+      "families": [
+        "vanity_toilet"
+      ],
+      "status": "ok",
+      "low": 3250,
+      "high": 4600,
+      "cited": [
+        "Q-010",
+        "Q-009",
+        "Q-011"
+      ],
+      "cited_families": [
+        "vanity_toilet",
+        "vanity_toilet",
+        "vanity_toilet"
+      ],
+      "retrieved": [
+        [
+          "Q-010",
+          "vanity_toilet",
+          0.661
+        ],
+        [
+          "Q-009",
+          "vanity_toilet",
+          0.653
+        ],
+        [
+          "Q-011",
+          "vanity_toilet",
+          0.633
+        ],
+        [
+          "Q-006",
+          "full_bathroom",
+          0.553
+        ],
+        [
+          "Q-008",
+          "full_bathroom",
+          0.54
+        ]
+      ],
+      "top_similarity": 0.661,
+      "violations": [],
+      "reason": "The jobs involve replacing a vanity and toilet, which is similar in scope to the new job. The sizes of the bathrooms in the past quotes are comparable to a guest bathroom.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 3250,
+        "high": 20900,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-012",
+      "expect": "estimate",
+      "families": [
+        "deck"
+      ],
+      "status": "ok",
+      "low": 14700,
+      "high": 29150,
+      "cited": [
+        "Q-059",
+        "Q-062",
+        "Q-060",
+        "Q-061"
+      ],
+      "cited_families": [
+        "deck",
+        "deck",
+        "deck",
+        "deck"
+      ],
+      "retrieved": [
+        [
+          "Q-059",
+          "deck",
+          0.645
+        ],
+        [
+          "Q-062",
+          "deck",
+          0.642
+        ],
+        [
+          "Q-060",
+          "deck",
+          0.569
+        ],
+        [
+          "Q-061",
+          "deck",
+          0.554
+        ],
+        [
+          "Q-070",
+          "handrail",
+          0.478
+        ]
+      ],
+      "top_similarity": 0.645,
+      "violations": [],
+      "reason": "The past quotes involve building decks of various sizes and materials, which are comparable to the new deck job.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 1600,
+        "high": 29150,
+        "in_band": true
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-013",
+      "expect": "not_enough",
+      "families": [],
+      "status": "ok",
+      "low": 5700,
+      "high": 5800,
+      "cited": [
+        "Q-036",
+        "Q-033"
+      ],
+      "cited_families": [
+        "lvp_flooring",
+        "lvp_flooring"
+      ],
+      "retrieved": [
+        [
+          "Q-002",
+          "shower_retile",
+          0.519
+        ],
+        [
+          "Q-039",
+          "hardwood",
+          0.491
+        ],
+        [
+          "Q-036",
+          "lvp_flooring",
+          0.49
+        ],
+        [
+          "Q-014",
+          "kitchen_refresh",
+          0.489
+        ],
+        [
+          "Q-033",
+          "lvp_flooring",
+          0.488
+        ]
+      ],
+      "top_similarity": 0.519,
+      "violations": [],
+      "reason": "The comparable jobs involve flooring installation and are within a similar scope. The sizes of the jobs are also close to the kitchen floor tile replacement.",
+      "uncovered": false,
+      "decision_correct": false
+    },
+    {
+      "id": "est-gen-014",
+      "expect": "estimate",
+      "families": [
+        "drainage"
+      ],
+      "status": "ok",
+      "low": 7600,
+      "high": 12300,
+      "cited": [
+        "Q-065",
+        "Q-063",
+        "Q-064"
+      ],
+      "cited_families": [
+        "drainage",
+        "drainage",
+        "drainage"
+      ],
+      "retrieved": [
+        [
+          "Q-065",
+          "drainage",
+          0.736
+        ],
+        [
+          "Q-063",
+          "drainage",
+          0.732
+        ],
+        [
+          "Q-064",
+          "drainage",
+          0.671
+        ],
+        [
+          "Q-030",
+          "gutters",
+          0.508
+        ],
+        [
+          "Q-031",
+          "gutters",
+          0.496
+        ]
+      ],
+      "top_similarity": 0.736,
+      "violations": [],
+      "reason": "The past quotes involve similar drainage and grading work in backyards, addressing issues with standing water.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 2050,
+        "high": 12300,
+        "in_band": true
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-015",
+      "expect": "estimate",
+      "families": [
+        "roof_replacement"
+      ],
+      "status": "ok",
+      "low": 18500,
+      "high": 21600,
+      "cited": [
+        "Q-022",
+        "Q-020",
+        "Q-023"
+      ],
+      "cited_families": [
+        "roof_replacement",
+        "roof_replacement",
+        "roof_replacement"
+      ],
+      "retrieved": [
+        [
+          "Q-021",
+          "roof_replacement",
+          0.721
+        ],
+        [
+          "Q-022",
+          "roof_replacement",
+          0.573
+        ],
+        [
+          "Q-020",
+          "roof_replacement",
+          0.566
+        ],
+        [
+          "Q-023",
+          "roof_replacement",
+          0.558
+        ],
+        [
+          "Q-025",
+          "roof_repair",
+          0.536
+        ]
+      ],
+      "top_similarity": 0.721,
+      "violations": [],
+      "reason": "The new job involves a full roof replacement on a two-story house, which is comparable in scope to the past quotes for reroofing and replacing roofs on larger homes.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 800,
+        "high": 21600,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-016",
+      "expect": "estimate",
+      "families": [
+        "full_bathroom"
+      ],
+      "status": "ok",
+      "low": 19700,
+      "high": 20900,
+      "cited": [
+        "Q-006",
+        "Q-005",
+        "Q-008"
+      ],
+      "cited_families": [
+        "full_bathroom",
+        "full_bathroom",
+        "full_bathroom"
+      ],
+      "retrieved": [
+        [
+          "Q-006",
+          "full_bathroom",
+          0.685
+        ],
+        [
+          "Q-005",
+          "full_bathroom",
+          0.68
+        ],
+        [
+          "Q-008",
+          "full_bathroom",
+          0.614
+        ],
+        [
+          "Q-009",
+          "vanity_toilet",
+          0.552
+        ],
+        [
+          "Q-011",
+          "vanity_toilet",
+          0.544
+        ]
+      ],
+      "top_similarity": 0.685,
+      "violations": [],
+      "reason": "The comparable jobs involve full bathroom remodels, which align with the scope of the new job. They are all similar in size and complexity.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 3250,
+        "high": 20900,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-017",
+      "expect": "estimate",
+      "families": [
+        "water_heater"
+      ],
+      "status": "ok",
+      "low": 1900,
+      "high": 2200,
+      "cited": [
+        "Q-049",
+        "Q-052",
+        "Q-050"
+      ],
+      "cited_families": [
+        "water_heater",
+        "water_heater",
+        "water_heater"
+      ],
+      "retrieved": [
+        [
+          "Q-051",
+          "water_heater",
+          0.704
+        ],
+        [
+          "Q-049",
+          "water_heater",
+          0.599
+        ],
+        [
+          "Q-052",
+          "water_heater",
+          0.599
+        ],
+        [
+          "Q-050",
+          "water_heater",
+          0.566
+        ],
+        [
+          "Q-053",
+          "pipe_repair",
+          0.531
+        ]
+      ],
+      "top_similarity": 0.704,
+      "violations": [],
+      "reason": "The past quotes involve replacing or repairing water heaters, which is similar to the current job of fixing a leaking water heater.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 1450,
+        "high": 3600,
+        "in_band": true
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-018",
+      "expect": "estimate",
+      "families": [
+        "full_kitchen",
+        "kitchen_refresh"
+      ],
+      "status": "ok",
+      "low": 46650,
+      "high": 53500,
+      "cited": [
+        "Q-016",
+        "Q-019"
+      ],
+      "cited_families": [
+        "full_kitchen",
+        "full_kitchen"
+      ],
+      "retrieved": [
+        [
+          "Q-016",
+          "full_kitchen",
+          0.628
+        ],
+        [
+          "Q-019",
+          "full_kitchen",
+          0.628
+        ],
+        [
+          "Q-012",
+          "kitchen_refresh",
+          0.585
+        ],
+        [
+          "Q-014",
+          "kitchen_refresh",
+          0.581
+        ],
+        [
+          "Q-015",
+          "kitchen_refresh",
+          0.572
+        ]
+      ],
+      "top_similarity": 0.628,
+      "violations": [],
+      "reason": "The comparable jobs are full kitchen remodels, which align closely with the new job type.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 8000,
+        "high": 53500,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-019",
+      "expect": "estimate",
+      "families": [
+        "shower_retile"
+      ],
+      "status": "ok",
+      "low": 5500,
+      "high": 6000,
+      "cited": [
+        "Q-002",
+        "Q-003"
+      ],
+      "cited_families": [
+        "shower_retile",
+        "shower_retile"
+      ],
+      "retrieved": [
+        [
+          "Q-004",
+          "shower_retile",
+          0.633
+        ],
+        [
+          "Q-001",
+          "shower_retile",
+          0.633
+        ],
+        [
+          "Q-002",
+          "shower_retile",
+          0.624
+        ],
+        [
+          "Q-003",
+          "shower_retile",
+          0.62
+        ],
+        [
+          "Q-006",
+          "full_bathroom",
+          0.591
+        ]
+      ],
+      "top_similarity": 0.633,
+      "violations": [],
+      "reason": "The comparable jobs involve retiling work in bathrooms with similar square footage. They are focused on retile projects, making them relevant for estimating the new job.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 5500,
+        "high": 20900,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-020",
+      "expect": "estimate",
+      "families": [
+        "lvp_flooring"
+      ],
+      "status": "ok",
+      "low": 4450,
+      "high": 5800,
+      "cited": [
+        "Q-034",
+        "Q-033",
+        "Q-035",
+        "Q-036"
+      ],
+      "cited_families": [
+        "lvp_flooring",
+        "lvp_flooring",
+        "lvp_flooring",
+        "lvp_flooring"
+      ],
+      "retrieved": [
+        [
+          "Q-034",
+          "lvp_flooring",
+          0.74
+        ],
+        [
+          "Q-033",
+          "lvp_flooring",
+          0.724
+        ],
+        [
+          "Q-035",
+          "lvp_flooring",
+          0.72
+        ],
+        [
+          "Q-036",
+          "lvp_flooring",
+          0.674
+        ],
+        [
+          "Q-042",
+          "carpet_stairs",
+          0.59
+        ]
+      ],
+      "top_similarity": 0.74,
+      "violations": [],
+      "reason": "The comparable jobs involve installing luxury vinyl plank flooring in similar areas and sizes. All selected quotes are for flooring jobs in residential settings.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 2800,
+        "high": 5800,
+        "in_band": true
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-021",
+      "expect": "estimate",
+      "families": [
+        "kitchen_refresh"
+      ],
+      "status": "ok",
+      "low": 8000,
+      "high": 11400,
+      "cited": [
+        "Q-012",
+        "Q-015",
+        "Q-013"
+      ],
+      "cited_families": [
+        "kitchen_refresh",
+        "kitchen_refresh",
+        "kitchen_refresh"
+      ],
+      "retrieved": [
+        [
+          "Q-014",
+          "kitchen_refresh",
+          0.683
+        ],
+        [
+          "Q-012",
+          "kitchen_refresh",
+          0.657
+        ],
+        [
+          "Q-015",
+          "kitchen_refresh",
+          0.635
+        ],
+        [
+          "Q-017",
+          "full_kitchen",
+          0.617
+        ],
+        [
+          "Q-013",
+          "kitchen_refresh",
+          0.605
+        ]
+      ],
+      "top_similarity": 0.683,
+      "violations": [],
+      "reason": "The selected past quotes involve painting kitchen cabinets and replacing countertops, which aligns closely with the new job. The scope of work in these quotes is similar in size and type.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 8000,
+        "high": 63500,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-022",
+      "expect": "estimate",
+      "families": [
+        "hardwood"
+      ],
+      "status": "not_enough",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [
+        [
+          "Q-040",
+          "carpet_stairs",
+          0.615
+        ],
+        [
+          "Q-042",
+          "carpet_stairs",
+          0.615
+        ],
+        [
+          "Q-037",
+          "hardwood",
+          0.6
+        ],
+        [
+          "Q-041",
+          "carpet_stairs",
+          0.586
+        ],
+        [
+          "Q-039",
+          "hardwood",
+          0.575
+        ]
+      ],
+      "top_similarity": 0.615,
+      "violations": [],
+      "reason": "The new job is specifically for replacing carpet with hardwood in a nursery, which is a smaller scope compared to the past jobs that involve larger areas and different types of flooring.",
+      "uncovered": false,
+      "decision_correct": false,
+      "first_relevant_rank": 3,
+      "baseline": {
+        "low": 2800,
+        "high": 16050,
+        "in_band": false
+      }
+    },
+    {
+      "id": "est-gen-023",
+      "expect": "estimate",
+      "families": [
+        "exterior_trim"
+      ],
+      "status": "ok",
+      "low": 3800,
+      "high": 6100,
+      "cited": [
+        "Q-066",
+        "Q-068",
+        "Q-067"
+      ],
+      "cited_families": [
+        "exterior_trim",
+        "exterior_trim",
+        "exterior_trim"
+      ],
+      "retrieved": [
+        [
+          "Q-066",
+          "exterior_trim",
+          0.702
+        ],
+        [
+          "Q-068",
+          "exterior_trim",
+          0.695
+        ],
+        [
+          "Q-067",
+          "exterior_trim",
+          0.652
+        ],
+        [
+          "Q-030",
+          "gutters",
+          0.505
+        ],
+        [
+          "Q-032",
+          "gutters",
+          0.498
+        ]
+      ],
+      "top_similarity": 0.702,
+      "violations": [],
+      "reason": "The comparable jobs involve repainting exterior trim, which is the same type of work. They also vary in scope but are all related to exterior painting.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 3200,
+        "high": 6100,
+        "in_band": true
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-024",
+      "expect": "estimate",
+      "families": [
+        "storm_damage"
+      ],
+      "status": "ok",
+      "low": 1900,
+      "high": 5700,
+      "cited": [
+        "Q-027",
+        "Q-029",
+        "Q-028"
+      ],
+      "cited_families": [
+        "storm_damage",
+        "storm_damage",
+        "storm_damage"
+      ],
+      "retrieved": [
+        [
+          "Q-027",
+          "storm_damage",
+          0.775
+        ],
+        [
+          "Q-029",
+          "storm_damage",
+          0.775
+        ],
+        [
+          "Q-028",
+          "storm_damage",
+          0.703
+        ],
+        [
+          "Q-022",
+          "roof_replacement",
+          0.55
+        ],
+        [
+          "Q-025",
+          "roof_repair",
+          0.539
+        ]
+      ],
+      "top_similarity": 0.775,
+      "violations": [],
+      "reason": "The comparable jobs involve storm damage repairs to roofs, which is similar in scope to the new job. They also include emergency tarp work and roof repairs.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 800,
+        "high": 21600,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-025",
+      "expect": "estimate",
+      "families": [
+        "sunroom"
+      ],
+      "status": "ok",
+      "low": 45150,
+      "high": 65600,
+      "cited": [
+        "Q-046",
+        "Q-048",
+        "Q-047"
+      ],
+      "cited_families": [
+        "sunroom",
+        "sunroom",
+        "sunroom"
+      ],
+      "retrieved": [
+        [
+          "Q-046",
+          "sunroom",
+          0.841
+        ],
+        [
+          "Q-048",
+          "sunroom",
+          0.841
+        ],
+        [
+          "Q-045",
+          "room_addition",
+          0.734
+        ],
+        [
+          "Q-043",
+          "room_addition",
+          0.731
+        ],
+        [
+          "Q-047",
+          "sunroom",
+          0.72
+        ]
+      ],
+      "top_similarity": 0.841,
+      "violations": [],
+      "reason": "The past quotes are for sunroom additions, which are similar in type to the new job. They vary in size but are all relevant to the scope of adding a sunroom.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 45150,
+        "high": 119350,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-026",
+      "expect": "estimate",
+      "families": [
+        "carpet_stairs"
+      ],
+      "status": "ok",
+      "low": 2800,
+      "high": 3950,
+      "cited": [
+        "Q-040",
+        "Q-042",
+        "Q-041"
+      ],
+      "cited_families": [
+        "carpet_stairs",
+        "carpet_stairs",
+        "carpet_stairs"
+      ],
+      "retrieved": [
+        [
+          "Q-040",
+          "carpet_stairs",
+          0.697
+        ],
+        [
+          "Q-042",
+          "carpet_stairs",
+          0.697
+        ],
+        [
+          "Q-041",
+          "carpet_stairs",
+          0.636
+        ],
+        [
+          "Q-033",
+          "lvp_flooring",
+          0.599
+        ],
+        [
+          "Q-037",
+          "hardwood",
+          0.596
+        ]
+      ],
+      "top_similarity": 0.697,
+      "violations": [],
+      "reason": "The past quotes involve carpeting stairs and hallways, which is the same type of work. The sizes are similar enough to provide a relevant price range.",
+      "uncovered": false,
+      "decision_correct": true,
+      "first_relevant_rank": 1,
+      "baseline": {
+        "low": 2800,
+        "high": 13750,
+        "in_band": false
+      },
+      "in_band": true,
+      "cited_precision": 1.0
+    },
+    {
+      "id": "est-gen-027",
+      "expect": "multiple_jobs",
+      "families": [],
+      "status": "multiple_jobs",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [],
+      "top_similarity": null,
+      "violations": [],
+      "reason": "",
+      "uncovered": false,
+      "decision_correct": true
+    },
+    {
+      "id": "est-pool",
+      "expect": "not_enough",
+      "families": [],
+      "status": "not_enough",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [
+        [
+          "Q-059",
+          "deck",
+          0.48
+        ],
+        [
+          "Q-062",
+          "deck",
+          0.473
+        ],
+        [
+          "Q-065",
+          "drainage",
+          0.457
+        ],
+        [
+          "Q-063",
+          "drainage",
+          0.456
+        ],
+        [
+          "Q-064",
+          "drainage",
+          0.437
+        ]
+      ],
+      "top_similarity": 0.48,
+      "violations": [],
+      "reason": "There are no past quotes that are comparable to the inground pool and spa job.",
+      "uncovered": true,
+      "decision_correct": true
+    },
+    {
+      "id": "est-solar",
+      "expect": "not_enough",
+      "families": [],
+      "status": "not_enough",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [
+        [
+          "Q-025",
+          "roof_repair",
+          0.432
+        ],
+        [
+          "Q-057",
+          "fence_repair",
+          0.411
+        ],
+        [
+          "Q-047",
+          "sunroom",
+          0.408
+        ],
+        [
+          "Q-022",
+          "roof_replacement",
+          0.397
+        ],
+        [
+          "Q-020",
+          "roof_replacement",
+          0.395
+        ]
+      ],
+      "top_similarity": 0.432,
+      "violations": [],
+      "reason": "",
+      "uncovered": true,
+      "decision_correct": true
+    },
+    {
+      "id": "est-hvac",
+      "expect": "not_enough",
+      "families": [],
+      "status": "not_enough",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [
+        [
+          "Q-049",
+          "water_heater",
+          0.545
+        ],
+        [
+          "Q-052",
+          "water_heater",
+          0.545
+        ],
+        [
+          "Q-050",
+          "water_heater",
+          0.47
+        ],
+        [
+          "Q-030",
+          "gutters",
+          0.456
+        ],
+        [
+          "Q-051",
+          "water_heater",
+          0.454
+        ]
+      ],
+      "top_similarity": 0.545,
+      "violations": [],
+      "reason": "There are no comparable past quotes for installing a central air system.",
+      "uncovered": true,
+      "decision_correct": true
+    },
+    {
+      "id": "est-panel",
+      "expect": "not_enough",
+      "families": [],
+      "status": "not_enough",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [
+        [
+          "Q-057",
+          "fence_repair",
+          0.445
+        ],
+        [
+          "Q-018",
+          "full_kitchen",
+          0.41
+        ],
+        [
+          "Q-047",
+          "sunroom",
+          0.402
+        ],
+        [
+          "Q-061",
+          "deck",
+          0.396
+        ],
+        [
+          "Q-059",
+          "deck",
+          0.39
+        ]
+      ],
+      "top_similarity": 0.445,
+      "violations": [],
+      "reason": "",
+      "uncovered": true,
+      "decision_correct": true
+    },
+    {
+      "id": "est-driveway",
+      "expect": "not_enough",
+      "families": [],
+      "status": "not_enough",
+      "low": null,
+      "high": null,
+      "cited": [],
+      "cited_families": [],
+      "retrieved": [
+        [
+          "Q-065",
+          "drainage",
+          0.544
+        ],
+        [
+          "Q-064",
+          "drainage",
+          0.538
+        ],
+        [
+          "Q-063",
+          "drainage",
+          0.536
+        ],
+        [
+          "Q-061",
+          "deck",
+          0.523
+        ],
+        [
+          "Q-069",
+          "handrail",
+          0.506
+        ]
+      ],
+      "top_similarity": 0.544,
+      "violations": [],
+      "reason": "None of the past jobs are comparable to the driveway repaving job. They involve different types of work and scopes.",
+      "uncovered": true,
+      "decision_correct": true
+    }
+  ]
+}

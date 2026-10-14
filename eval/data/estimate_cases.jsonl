@@ -1,0 +1,31 @@
+{"id": "est-gen-001", "lead": "gen-001", "expect": "estimate", "families": ["full_bathroom"], "labeled_by": "unreviewed"}
+{"id": "est-gen-002", "lead": "gen-002", "expect": "estimate", "families": ["lvp_flooring", "hardwood"], "labeled_by": "unreviewed"}
+{"id": "est-gen-003", "lead": "gen-003", "expect": "multiple_jobs", "families": [], "labeled_by": "unreviewed"}
+{"id": "est-gen-004", "lead": "gen-004", "expect": "not_enough", "families": [], "labeled_by": "unreviewed"}
+{"id": "est-gen-006", "lead": "gen-006", "expect": "estimate", "families": ["pipe_repair"], "labeled_by": "unreviewed"}
+{"id": "est-gen-007", "lead": "gen-007", "expect": "estimate", "families": ["roof_replacement"], "labeled_by": "unreviewed"}
+{"id": "est-gen-008", "lead": "gen-008", "expect": "estimate", "families": ["deck"], "labeled_by": "unreviewed"}
+{"id": "est-gen-009", "lead": "gen-009", "expect": "estimate", "families": ["room_addition"], "labeled_by": "unreviewed"}
+{"id": "est-gen-010", "lead": "gen-010", "expect": "estimate", "families": ["shower_retile"], "labeled_by": "unreviewed"}
+{"id": "est-gen-011", "lead": "gen-011", "expect": "estimate", "families": ["vanity_toilet"], "labeled_by": "unreviewed"}
+{"id": "est-gen-012", "lead": "gen-012", "expect": "estimate", "families": ["deck"], "labeled_by": "unreviewed"}
+{"id": "est-gen-013", "lead": "gen-013", "expect": "not_enough", "families": [], "labeled_by": "unreviewed"}
+{"id": "est-gen-014", "lead": "gen-014", "expect": "estimate", "families": ["drainage"], "labeled_by": "unreviewed"}
+{"id": "est-gen-015", "lead": "gen-015", "expect": "estimate", "families": ["roof_replacement"], "labeled_by": "unreviewed"}
+{"id": "est-gen-016", "lead": "gen-016", "expect": "estimate", "families": ["full_bathroom"], "labeled_by": "unreviewed"}
+{"id": "est-gen-017", "lead": "gen-017", "expect": "estimate", "families": ["water_heater"], "labeled_by": "unreviewed"}
+{"id": "est-gen-018", "lead": "gen-018", "expect": "estimate", "families": ["full_kitchen", "kitchen_refresh"], "labeled_by": "unreviewed"}
+{"id": "est-gen-019", "lead": "gen-019", "expect": "estimate", "families": ["shower_retile"], "labeled_by": "unreviewed"}
+{"id": "est-gen-020", "lead": "gen-020", "expect": "estimate", "families": ["lvp_flooring"], "labeled_by": "unreviewed"}
+{"id": "est-gen-021", "lead": "gen-021", "expect": "estimate", "families": ["kitchen_refresh"], "labeled_by": "unreviewed"}
+{"id": "est-gen-022", "lead": "gen-022", "expect": "estimate", "families": ["hardwood"], "labeled_by": "unreviewed"}
+{"id": "est-gen-023", "lead": "gen-023", "expect": "estimate", "families": ["exterior_trim"], "labeled_by": "unreviewed"}
+{"id": "est-gen-024", "lead": "gen-024", "expect": "estimate", "families": ["storm_damage"], "labeled_by": "unreviewed"}
+{"id": "est-gen-025", "lead": "gen-025", "expect": "estimate", "families": ["sunroom"], "labeled_by": "unreviewed"}
+{"id": "est-gen-026", "lead": "gen-026", "expect": "estimate", "families": ["carpet_stairs"], "labeled_by": "unreviewed"}
+{"id": "est-gen-027", "lead": "gen-027", "expect": "multiple_jobs", "families": [], "labeled_by": "unreviewed"}
+{"id": "est-pool", "text": "We want an inground pool with a small spa in the backyard. Pasadena.", "job_types": ["other"], "expect": "not_enough", "families": [], "labeled_by": "unreviewed"}
+{"id": "est-solar", "text": "Looking to get solar panels installed on our roof, about 20 panels.", "job_types": ["other"], "expect": "not_enough", "families": [], "labeled_by": "unreviewed"}
+{"id": "est-hvac", "text": "Our AC unit died, need a new central air system installed.", "job_types": ["repair"], "expect": "not_enough", "families": [], "labeled_by": "unreviewed"}
+{"id": "est-panel", "text": "Need the electrical panel upgraded to 200 amps for an EV charger.", "job_types": ["other"], "expect": "not_enough", "families": [], "labeled_by": "unreviewed"}
+{"id": "est-driveway", "text": "Driveway is cracked everywhere, want it torn out and repaved in concrete.", "job_types": ["other"], "expect": "not_enough", "families": [], "labeled_by": "unreviewed"}
