@@ -36,6 +36,10 @@ customer on /quote ──> chat agent ────────┘        │    
 - **Nothing is sent automatically.** The chat only collects details; replies are drafted for a person to edit and send.
 - **Every AI call is traced:** feature, model, prompt version, tokens, cost, latency and failures, linked to the card it produced ([tracing.py](foreman/tracing.py)). The AI usage page shows cost per day and per lead, error rates, and p50/p95 latency per feature. Traces hold metadata only, never message text, so customer data stays on the card.
 
+## The eval gate
+
+Every push to `main` runs the extractor (twice, averaged), reply and estimate evals against the real model and **fails the build** if a number crosses its line in [eval/thresholds.json](eval/thresholds.json): hallucination over 4%, accuracy under 95%, any priced job that has no comparable data, and so on. The lines sit just past today's results, so noise passes and a real regression doesn't: the old prompt-only extractor (5.9% hallucination) would fail. Each threshold has its reason next to it, and changing one shows up in a commit. About 1 cent per run.
+
 ## What the evals caught
 
 - **Prompt fixes that made things worse.** Extractor v2 doubled hallucinations; ablations traced it to one prompt rule. Chat agent a2 cut hallucinations but started losing real leads, which only showed up because lost leads are measured, not just field accuracy.
@@ -84,11 +88,10 @@ Or `docker compose up --build`.
 
 ## Stack
 
-Python 3.12, OpenAI (structured outputs and tool calling, no agent framework), Pydantic, FastAPI, SQLite, React + Vite + Tailwind, Docker, GitHub Actions (tests, front-end and Docker builds, and the extractor eval on `main`).
+Python 3.12, OpenAI (structured outputs and tool calling, no agent framework), Pydantic, FastAPI, SQLite, React + Vite + Tailwind, Docker, GitHub Actions (tests, front-end and Docker builds, and an eval gate on `main`).
 
 ## Next
 
 - An MCP server exposing the same tools
-- A CI gate that fails the build if hallucinations go up
 
 MIT license
