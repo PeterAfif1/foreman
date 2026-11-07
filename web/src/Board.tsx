@@ -14,8 +14,10 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useRef, useState } from "react";
+import { BoardFilters, isFiltering, matches, NO_FILTER, type Filter } from "./BoardFilters";
 import { CardFace } from "./CardView";
 import { Column } from "./Column";
+import { nextStep } from "./nextStep";
 import type { Card, Stage } from "./types";
 
 export type Columns = Record<string, Card[]>;
@@ -42,6 +44,15 @@ export function Board({
   onOpen: (c: Card) => void;
 }) {
   const [active, setActive] = useState<Card | null>(null);
+  const [filter, setFilter] = useState<Filter>(NO_FILTER);
+  // Positions are saved per column, so dragging within a filtered column would
+  // land cards in the wrong place. Moving still works from the card's menu.
+  const filtering = isFiltering(filter);
+  const closed = (key: string) => stages.find((s) => s.key === key)?.closed ?? false;
+  const shownIn = (key: string) => (columns[key] ?? []).filter((c) => matches(c, filter, closed(key)));
+  const all = stages.flatMap((s) => (columns[s.key] ?? []).map((c) => ({ c, closed: s.closed })));
+  const needsMeCount = all.filter(({ c, closed }) => nextStep(c, closed)).length;
+  const shownCount = stages.reduce((n, s) => n + shownIn(s.key).length, 0);
   const origin = useRef<Spot | null>(null);
   // The board before the drag, to put back if the drag is cancelled (Escape).
   const snapshot = useRef<Columns | null>(null);
@@ -120,10 +131,19 @@ export function Board({
         }
       }}
     >
-      <div className="flex h-full gap-3 overflow-x-auto p-3 sm:p-4">
-        {stages.map((s) => (
-          <Column key={s.key} stage={s} cards={columns[s.key] ?? []} onOpen={onOpen} />
-        ))}
+      <div className="flex h-full flex-col">
+        <BoardFilters
+          filter={filter}
+          onChange={setFilter}
+          needsMeCount={needsMeCount}
+          shown={shownCount}
+          total={all.length}
+        />
+        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3 sm:p-4">
+          {stages.map((s) => (
+            <Column key={s.key} stage={s} cards={shownIn(s.key)} dragDisabled={filtering} onOpen={onOpen} />
+          ))}
+        </div>
       </div>
       <DragOverlay>
         {active ? (

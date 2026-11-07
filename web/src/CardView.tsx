@@ -107,9 +107,20 @@ export function CardFace({ card, closed, lifted = false }: { card: Card; closed:
   );
 }
 
-export function SortableCard({ card, closed, onOpen }: { card: Card; closed: boolean; onOpen: (c: Card) => void }) {
+export function SortableCard({
+  card,
+  closed,
+  dragDisabled,
+  onOpen,
+}: {
+  card: Card;
+  closed: boolean;
+  dragDisabled: boolean;
+  onOpen: (c: Card) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
+    disabled: dragDisabled,
   });
   return (
     <li
@@ -119,7 +130,9 @@ export function SortableCard({ card, closed, onOpen }: { card: Card; closed: boo
     >
       <button
         type="button"
-        className="block w-full cursor-grab rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:cursor-grabbing"
+        className={`block w-full rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+          dragDisabled ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
+        }`}
         onClick={() => onOpen(card)}
         {...attributes}
         {...listeners}
