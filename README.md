@@ -2,93 +2,86 @@
 
 ![CI](https://github.com/PeterAfif1/foreman/actions/workflows/ci.yml/badge.svg)
 
-AI intake for contractors, built for a small construction business. Four AI components, each with its own evals: an **extractor** that turns messy texts into structured jobs, a **customer chat agent** that collects a job request using tools, **reply drafting**, and **rough estimates** from similar past jobs (RAG). They feed a Trello-style job board, and every AI call is traced.
+AI lead intake for a small construction business. Customers text, email or chat. Foreman turns that into a clean job card on a Trello-style board, drafts a reply, and gives staff a rough estimate from similar past jobs. A person always reviews and sends.
 
-The demo runs on synthetic leads I reviewed and labeled by hand, and synthetic past quotes with made-up prices. No customer data is in this repo.
+All demo data is synthetic. No real customer data is in this repo.
 
-## The AI parts
+## What the AI does
 
-| Component | What it does | How it's tested | Result (3 runs, gpt-4o-mini) |
-|---|---|---|---|
-| **Extractor** | Message in, validated `Lead` out (structured outputs), then code rules | 27 hand-labeled leads | **97.3%** field accuracy, **1.4%** hallucination (from 96.0% / 5.9%) |
-| **Chat agent** | Multi-turn web chat with 3 tools; code gates and output guardrails | 26 simulated customers with hidden facts + 8 attacks | **4.0%** hallucination (from 10.1%), **0** lost leads, **24/24** attacks blocked |
-| **Reply drafts** | Code picks what to ask, the model writes it, a person sends it | Rule checks on every draft | **77/78** drafts pass every check |
-| **Rough estimates (RAG)** | Embed the job, retrieve 5 similar past quotes, the model picks the comparable ones, code checks the range comes from them | 31 cases incl. 5 jobs with no data | **95.5%** right job type ranked first, **100%** ranges in the right band vs **36%** for a plain min-max baseline, **5/5** uncovered jobs declined |
+| Part | Job | Result (gpt-4o-mini, 3 runs) |
+|---|---|---|
+| **Extractor** | Messy message in, structured job out | 97.3% accurate, 1.4% made-up fields |
+| **Chat agent** | Collects a job request on `/quote` using tools | 4.0% made-up fields, 0 lost leads, 24/24 attacks blocked |
+| **Reply drafts** | Writes the follow-up for a person to send | 77/78 pass every check |
+| **Estimates (RAG)** | Finds similar past quotes and gives a price range | 100% of ranges in the right band, declines when there's no data |
 
-**Hallucination rate** is the number I watch most: how often the AI fills in something the customer never said. A blank gets asked about. A made-up budget gets trusted.
+The number that matters most: **how often the AI invents something the customer never said.** Full eval history, including the versions that got worse: [docs/EVALS.md](docs/EVALS.md).
 
-Full history of every version, including the ones that got worse: [docs/EVALS.md](docs/EVALS.md).
+## How it's built
 
-## How it works
-
-```
-text / email / call notes ──> extractor ──┐
-                                          ├──> code rules ──> card on the board ──> person checks it
-customer on /quote ──> chat agent ────────┘        │                                      │
-        (tools: SaveDetails, Finish, EndChat)       │                         draft reply, they send it
-                                                    └── deadline math, names must appear in the text,
-                                                        "flexible" needs timing words, $0 = not stated
-```
-
-- **The model handles language; code handles anything exact.** Date math, whether a name really appears in the message, when a chat may finish, and whether a reply mentions a price or date the customer never said are all decided in plain Python ([rules.py](foreman/rules.py), [guards.py](foreman/guards.py), [agent.py](foreman/agent.py)). Every eval stores the model's raw answer next to the final one, so the effect of the rules is measured, not assumed.
-- **Guardrails on every customer-facing message.** A reply that mentions a price or date the customer didn't gets one rewrite, then a safe fallback.
-- **Estimates are grounded in code, not trust.** Every cited quote must be one that was retrieved, and the range must sit inside the cited prices. Nothing similar means no estimate. Staff only: customers never get a price.
-- **Nothing is sent automatically.** The chat only collects details; replies are drafted for a person to edit and send.
-- **Every AI call is traced:** feature, model, prompt version, tokens, cost, latency and failures, linked to the card it produced ([tracing.py](foreman/tracing.py)). The AI usage page shows cost per day and per lead, error rates, and p50/p95 latency per feature. Traces hold metadata only, never message text, so customer data stays on the card.
-
-## The eval gate
-
-Every push to `main` runs the extractor (twice, averaged), reply and estimate evals against the real model and **fails the build** if a number crosses its line in [eval/thresholds.json](eval/thresholds.json): hallucination over 4%, accuracy under 95%, any priced job that has no comparable data, and so on. The lines sit just past today's results, so noise passes and a real regression doesn't: the old prompt-only extractor (5.9% hallucination) would fail. Each threshold has its reason next to it, and changing one shows up in a commit. About 1 cent per run.
-
-## What the evals caught
-
-- **Prompt fixes that made things worse.** Extractor v2 doubled hallucinations; ablations traced it to one prompt rule. Chat agent a2 cut hallucinations but started losing real leads, which only showed up because lost leads are measured, not just field accuracy.
-- **My own bugs.** A guardrail that flagged "how can I help you *today*", an answer key that expected budgets the agent skips on purpose, a check whose regex never matched "Hi Carlos". Each one fixed and re-measured.
-- **The same trap twice.** "Budget is flexible" became flexible *timing* in both the extractor and the agent. Prompts kept losing; a 10-line code rule fixed both.
-
-## Example
-
-```
-hey saw ur truck on maple st. kitchen redo maybe floors too. under 30k? call 818 555 0142 - dana
-```
-
-```json
-{
-  "customer_name": "dana",
-  "contact": "818 555 0142",
-  "job_types": ["kitchen", "flooring"],
-  "location": "maple st",
-  "budget_max": 30000,
-  "urgency": null
-}
-```
-
-Real extractor output, trimmed. This run got one thing wrong: "maple st" is where they saw the truck, not the job. It does that in about 1 of 3 runs, so the example is in the eval set.
+- **AI handles language, code handles facts.** Dates, names, prices and "is this chat done" are checked in plain Python, not trusted to the model.
+- **Nothing sends automatically.** Every customer-facing message is guarded and reviewed by a person.
+- **Every AI call is traced:** cost, tokens, latency and errors per feature.
+- **CI blocks bad prompts.** Every push to `main` runs the evals and fails the build if accuracy drops or hallucinations rise ([eval/thresholds.json](eval/thresholds.json)).
 
 ## Run it
 
+**1. Set up your keys** (once)
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and fill in `OPENAI_API_KEY`, `FOREMAN_PASSWORD` (12+ characters) and `FOREMAN_SECRET_KEY` (any long random string).
+
+**2. Start the app.** Pick one:
+
+**Option A: Docker** (easiest, needs Docker Desktop running)
+
+```bash
+docker compose up --build
+```
+
+**Option B: Locally** (needs Python, [uv](https://docs.astral.sh/uv/) and Node)
+
+Add `FOREMAN_SECURE_COOKIES=off` to `.env` so login works over plain http, then:
+
 ```bash
 uv sync
-cp .env.example .env              # OpenAI key, plus a password and secret key for the app
-uv run pytest                     # 170 tests, no API calls
-uv run python -m eval.run_eval --label test          # extractor eval
-uv run python -m eval.run_chat_eval --label test     # chat agent eval
-uv run python -m eval.run_reply_eval --label test    # reply eval
+cd web
+npm install
+npm run build
+cd ..
+uv run python -m scripts.seed_demo
 ```
 
-The app (board at http://localhost:8000, customer chat at `/quote`):
+Start the server:
 
 ```bash
-cd web && npm install && npm run build && cd ..
-uv run python -m scripts.seed_demo
+# Mac / Linux
 FOREMAN_DB=data/demo.db uv run uvicorn foreman.api:create_app --factory --reload
+
+# Windows PowerShell
+$env:FOREMAN_DB="data/demo.db"; uv run uvicorn foreman.api:create_app --factory --reload
 ```
 
-Or `docker compose up --build`.
+**3. Open it**
+
+- Board: http://localhost:8000 (log in with your `FOREMAN_PASSWORD`)
+- Customer chat: http://localhost:8000/quote
+
+## Test it
+
+```bash
+uv run pytest                                      # 170 tests, free, no API calls
+uv run python -m eval.run_eval --label test        # extractor eval (uses OpenAI)
+uv run python -m eval.run_chat_eval --label test   # chat agent eval
+uv run python -m eval.run_reply_eval --label test  # reply eval
+```
 
 ## Stack
 
-Python 3.12, OpenAI (structured outputs and tool calling, no agent framework), Pydantic, FastAPI, SQLite, React + Vite + Tailwind, Docker, GitHub Actions (tests, front-end and Docker builds, and an eval gate on `main`).
+Python 3.12, OpenAI (structured outputs + tool calling, no agent framework), Pydantic, FastAPI, SQLite, React + Vite + Tailwind, Docker, GitHub Actions.
 
 ## Next
 
