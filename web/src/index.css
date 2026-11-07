@@ -3,7 +3,10 @@
 @theme {
   --color-accent: #c2410c;
   --color-accent-strong: #9a3412;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Geist for text, Geist Mono for numbers people compare: money, phones, dates.
+     Self-hosted (Fontsource), so the board makes no request to a font CDN. */
+  --font-sans: "Geist Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
 /* Motion that explains a change (a toast arriving), never decoration. */
