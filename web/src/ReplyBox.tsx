@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "./api";
+import { api, messageOf } from "./api";
 import type { Card } from "./types";
 
 const primary =
@@ -42,7 +42,7 @@ export function ReplyBox({
       setText((await api.draft(card.id)).text);
       onDrafted();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(messageOf(e));
     } finally {
       setWorking(false);
     }
@@ -56,7 +56,7 @@ export function ReplyBox({
       await onSent(await api.sent(card.id, text.trim()));
       setText(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(messageOf(e));
     } finally {
       setWorking(false);
     }

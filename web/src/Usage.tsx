@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "./api";
+import { api, messageOf } from "./api";
 import type { Usage as UsageData, UsageStats } from "./types";
 
 const FEATURE_NAMES: Record<string, string> = {
@@ -130,7 +130,7 @@ export function Usage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.usage(days).then(setData).catch((e) => setError(String(e)));
+    api.usage(days).then(setData).catch((e) => setError(messageOf(e)));
   }, [days]);
 
   if (error) return <p className="p-6 text-red-600">{error}</p>;

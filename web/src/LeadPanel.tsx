@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Activity } from "./Activity";
-import { api } from "./api";
+import { api, messageOf } from "./api";
 import { cleanFields, FieldsForm } from "./FieldsForm";
 import { EstimateBox } from "./EstimateBox";
 import { ReplyBox } from "./ReplyBox";
@@ -67,7 +67,7 @@ export function LeadPanel({
       await loadEvents();
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(messageOf(e));
       return false;
     } finally {
       setBusy(false);

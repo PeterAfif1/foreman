@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api } from "./api";
+import { api, messageOf } from "./api";
 import { Board, groupByStage, type Columns } from "./Board";
 import { AddLead } from "./AddLead";
 import { Usage } from "./Usage";
@@ -52,7 +52,7 @@ export default function App() {
       setStats(st);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(messageOf(e));
     }
   }, []);
 
@@ -77,7 +77,7 @@ export default function App() {
       else await reload();
     } catch (e) {
       // The server is the source of truth: if the move didn't save, show what did.
-      setError(`Couldn't move that card: ${e instanceof Error ? e.message : e}`);
+      setError(`Couldn't move that card: ${messageOf(e)}`);
       reload();
     }
   }
@@ -150,8 +150,21 @@ export default function App() {
       </header>
 
       {error && (
-        <div role="alert" className="bg-red-50 px-4 py-2 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
-          {error}
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-red-50 px-4 py-2 text-sm text-red-800 dark:bg-red-950 dark:text-red-200"
+        >
+          <span className="min-w-0 flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={reload}
+            className="rounded-md bg-red-800 px-3 py-1 font-semibold text-white hover:bg-red-900 active:scale-[0.98] dark:bg-red-200 dark:text-red-950 dark:hover:bg-red-100"
+          >
+            Try again
+          </button>
+          <button type="button" onClick={() => setError(null)} className="px-1 underline">
+            Dismiss
+          </button>
         </div>
       )}
 

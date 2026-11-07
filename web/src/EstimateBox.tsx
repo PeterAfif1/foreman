@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "./api";
+import { api, messageOf } from "./api";
 import type { Card, EstimateResult } from "./types";
 
 const money = (n: number) => `$${n.toLocaleString()}`;
@@ -22,7 +22,7 @@ export function EstimateBox({ card, onDone }: { card: Card; onDone: () => void }
       setResult(await api.estimate(card.id));
       onDone();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(messageOf(e));
     } finally {
       setBusy(false);
     }

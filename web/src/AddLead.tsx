@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "./api";
+import { api, messageOf } from "./api";
 import { go } from "./route";
 import type { Card, Source } from "./types";
 import { fieldsOf, SOURCES } from "./types";
@@ -35,7 +35,7 @@ export function AddLead({ onAdded }: { onAdded: () => Promise<void> }) {
       await onAdded();
       setAdded(card);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(messageOf(err));
     } finally {
       setBusy(false);
     }
