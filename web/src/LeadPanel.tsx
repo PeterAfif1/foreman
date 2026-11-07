@@ -20,6 +20,12 @@ function fmtDate(iso: string) {
   });
 }
 
+/** Same details, ignoring the order job types were ticked in and stray whitespace. */
+function sameFields(a: LeadFields, b: LeadFields) {
+  const key = (f: LeadFields) => JSON.stringify({ ...cleanFields(f), job_types: [...f.job_types].sort() });
+  return key(a) === key(b);
+}
+
 type Tab = "details" | "reply" | "estimate" | "activity";
 
 /** Tabs with the keyboard behavior screen reader users expect: arrows move between them. */
@@ -120,11 +126,6 @@ export function LeadPanel({
   useEffect(() => {
     loadEvents();
   }, [loadEvents, card]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   /** Run a change, then confirm it with `done` (if given) once it has saved. */
   async function run(action: () => Promise<Card | void>, done?: string) {
@@ -162,6 +163,25 @@ export function LeadPanel({
   // Before checking: outline differences from the AI. While editing: from the saved card.
   const base = checked ? saved : (card.extracted ?? EMPTY_FIELDS);
   const locked = checked && !editing;
+
+  // Closing by accident (a click on the board behind, Escape) shouldn't throw work away.
+  const unsaved = (!locked && !sameFields(fields, base)) || note.trim() !== "";
+  const requestClose = useCallback(() => {
+    if (unsaved && !window.confirm("Discard your unsaved changes to this card?")) return;
+    onClose();
+  }, [unsaved, onClose]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && requestClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [requestClose]);
+  // Reloading or leaving the page gets the browser's own warning.
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsaved]);
 
   // Replies and estimates only make sense for real customers.
   const tabs: { id: Tab; label: string; count?: number }[] = [
@@ -204,7 +224,7 @@ export function LeadPanel({
   const title = saved.customer_name ?? (saved.name_hint ? `Maybe ${saved.name_hint}` : "No name yet");
 
   return (
-    <div className="fixed inset-0 z-20 flex justify-end bg-stone-950/40" onClick={onClose}>
+    <div className="fixed inset-0 z-20 flex justify-end bg-stone-950/40" onClick={requestClose}>
       <aside
         role="dialog"
         aria-label={`Job card: ${title}`}
@@ -231,7 +251,7 @@ export function LeadPanel({
           </label>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="ml-auto shrink-0 rounded px-2 py-1 text-sm hover:bg-stone-200 dark:hover:bg-stone-800"
           >
             Close
