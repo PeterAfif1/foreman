@@ -130,6 +130,47 @@ def test_failed_extraction_still_saves_the_message(client):
     assert body["error"].startswith("RuntimeError")
 
 
+def test_failed_card_can_be_read_again(client):
+    lead = client.post("/api/leads", json={"text": "boom"}).json()
+
+    def model_back_up(text, received_at=None):
+        return fake_extract("kitchen", received_at)
+
+    client.app.dependency_overrides[get_extractor] = lambda: model_back_up
+    r = client.post(f"/api/leads/{lead['id']}/extract")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["error"] is None and body["extracted"]["customer_name"] == "dana"
+    assert body["status"] == "pending"  # still needs a person to check it
+    last = client.get(f"/api/leads/{lead['id']}/events").json()[-1]
+    assert last == {**last, "kind": "reextracted", "detail": {"ok": True}}
+    calls = client.get(f"/api/leads/{lead['id']}/calls").json()
+    assert [c["ok"] for c in calls] == [False, True]
+
+
+def test_reading_again_can_fail_again_without_losing_the_message(client):
+    lead = client.post("/api/leads", json={"text": "boom"}).json()
+    body = client.post(f"/api/leads/{lead['id']}/extract").json()
+    assert body["error"].startswith("RuntimeError") and body["text"] == "boom"
+    last = client.get(f"/api/leads/{lead['id']}/events").json()[-1]
+    assert last["detail"] == {"ok": False}
+
+
+def test_checked_card_is_not_read_again(client):
+    lead = client.post("/api/leads", json={"text": "kitchen"}).json()
+    client.post(f"/api/leads/{lead['id']}/approve", json=lead["extracted"])
+    r = client.post(f"/api/leads/{lead['id']}/extract")
+    assert r.status_code == 409
+
+
+def test_reading_a_missing_card_is_404(client):
+    assert client.post("/api/leads/999/extract").status_code == 404
+
+
+def test_reading_again_needs_login(secured):
+    assert secured.post("/api/leads/1/extract").status_code == 401
+
+
 def test_empty_text_is_rejected(client):
     assert client.post("/api/leads", json={"text": ""}).status_code == 422
 

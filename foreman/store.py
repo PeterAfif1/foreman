@@ -84,7 +84,8 @@ CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     lead_id INTEGER NOT NULL REFERENCES leads(id),
     at TEXT NOT NULL,
-    -- created | approved | moved | note | edited | reply_drafted | reply_sent | estimated
+    -- created | reextracted | approved | moved | note | edited | reply_drafted | reply_sent
+    -- | estimated
     kind TEXT NOT NULL,
     detail TEXT          -- JSON
 );
@@ -292,6 +293,45 @@ class Store:
             )
             lead_id = cur.lastrowid
             self._log(conn, lead_id, "created")
+        return self.get(lead_id)
+
+    def reextract(
+        self,
+        lead_id: int,
+        extracted: Lead | None = None,
+        raw_extracted: Lead | None = None,
+        model: str | None = None,
+        prompt_version: str | None = None,
+        cost_usd: float | None = None,
+        latency_ms: float | None = None,
+        error: str | None = None,
+    ) -> LeadRecord | None:
+        """Replace the AI's reading of a card, e.g. after the model call failed.
+
+        Only for cards nobody has checked yet: once a person has approved the
+        details, a new AI reading would overwrite their work."""
+        record = self.get(lead_id)
+        if record is None:
+            return None
+        if record.approved is not None:
+            raise ValueError("this card was already checked")
+        with self._conn() as conn:
+            conn.execute(
+                """UPDATE leads SET extracted = ?, raw_extracted = ?, model = ?,
+                   prompt_version = ?, cost_usd = ?, latency_ms = ?, error = ?
+                   WHERE id = ?""",
+                (
+                    extracted.model_dump_json() if extracted else None,
+                    raw_extracted.model_dump_json() if raw_extracted else None,
+                    model,
+                    prompt_version,
+                    cost_usd,
+                    latency_ms,
+                    error,
+                    lead_id,
+                ),
+            )
+            self._log(conn, lead_id, "reextracted", {"ok": error is None})
         return self.get(lead_id)
 
     def get(self, lead_id: int) -> LeadRecord | None:

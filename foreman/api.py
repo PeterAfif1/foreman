@@ -191,32 +191,46 @@ def health():
     return {"ok": True}
 
 
+def _read_message(run, text: str, received_at: date) -> dict:
+    """Run the extractor and return what to store. A failed model call comes back
+    as an error instead of raising, so the customer's message is never lost: the
+    reviewer can fill the card in by hand or try again."""
+    try:
+        result = run(text, received_at=received_at)
+    except Exception as e:  # noqa: BLE001 - keep the lead even if the model call fails
+        return {"error": f"{type(e).__name__}: {e}"}
+    return {
+        "extracted": result.lead,
+        "raw_extracted": result.raw_lead,
+        "model": result.model,
+        "prompt_version": result.prompt_version,
+        "cost_usd": result.cost_usd,
+        "latency_ms": result.latency_ms,
+    }
+
+
 @api.post("/leads", response_model=LeadOut, status_code=201)
 def create_lead(body: LeadIn, store: StoreDep, run: ExtractorDep):
     received_at = body.received_at or date.today()
     with tracing.request_context() as request_id:
-        try:
-            result = run(body.text, received_at=received_at)
-        except Exception as e:  # noqa: BLE001 - keep the lead even if the model call fails
-            # The message is still saved, so nothing a customer sent gets lost. The
-            # reviewer fills it in by hand.
-            record = store.add(
-                body.text, received_at, error=f"{type(e).__name__}: {e}", source=body.source
-            )
-        else:
-            record = store.add(
-                body.text,
-                received_at,
-                extracted=result.lead,
-                raw_extracted=result.raw_lead,
-                model=result.model,
-                prompt_version=result.prompt_version,
-                cost_usd=result.cost_usd,
-                latency_ms=result.latency_ms,
-                source=body.source,
-            )
+        reading = _read_message(run, body.text, received_at)
+        record = store.add(body.text, received_at, source=body.source, **reading)
     store.link_calls(record.id, request_id=request_id)
     return LeadOut.from_record(record)
+
+
+@api.post("/leads/{lead_id}/extract", response_model=LeadOut)
+def reextract_lead(lead_id: int, store: StoreDep, run: ExtractorDep):
+    """Have the AI read an unchecked card again, e.g. after the model call failed."""
+    record = store.get(lead_id)
+    if record is None:
+        raise HTTPException(404, "lead not found")
+    if record.approved is not None:
+        raise HTTPException(409, "this card was already checked")
+    with tracing.request_context() as request_id:
+        reading = _read_message(run, record.text, record.received_at)
+    store.link_calls(lead_id, request_id=request_id)
+    return LeadOut.from_record(store.reextract(lead_id, **reading))
 
 
 @api.get("/leads", response_model=list[LeadOut])
