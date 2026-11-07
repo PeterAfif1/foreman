@@ -53,7 +53,8 @@ def build_user_message(text: str, received_at: date | str | None = None) -> str:
         return text
     if isinstance(received_at, str):
         received_at = date.fromisoformat(received_at)
-    return f"Received: {received_at:%A, %B %-d, %Y}\n\n{text}"
+    # received_at.day, not %-d: Windows strftime rejects %-d.
+    return f"Received: {received_at:%A, %B} {received_at.day}, {received_at:%Y}\n\n{text}"
 
 
 def extract(

@@ -38,6 +38,12 @@ def test_received_date_is_put_in_front_of_the_message():
     assert build_user_message("roof leak") == "roof leak"
 
 
+def test_single_digit_day_has_no_leading_zero():
+    assert build_user_message("sink leak", "2026-11-06") == (
+        "Received: Friday, November 6, 2026\n\nsink leak"
+    )
+
+
 def test_extract_sends_received_date():
     client = fake_client(Lead(is_lead=True))
     sent = {}
