@@ -1,3 +1,4 @@
+import { WarningCircleIcon, XIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Activity } from "./Activity";
 import { api, messageOf } from "./api";
@@ -252,9 +253,11 @@ export function LeadPanel({
           <button
             type="button"
             onClick={requestClose}
-            className="ml-auto shrink-0 rounded px-2 py-1 text-sm hover:bg-stone-200 dark:hover:bg-stone-800"
+            aria-label="Close"
+            title="Close (Esc)"
+            className="ml-auto shrink-0 rounded-md p-2 text-stone-500 transition-colors hover:bg-stone-200 hover:text-stone-900 dark:hover:bg-stone-800 dark:hover:text-stone-100"
           >
-            Close
+            <XIcon aria-hidden size={20} />
           </button>
         </header>
 
@@ -285,7 +288,10 @@ export function LeadPanel({
               <div {...panel("details")}>
                 {card.error && !checked && (
                   <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
-                    <p>The AI couldn't read this one. Try again, or fill it in by hand.</p>
+                    <p className="flex items-center gap-2">
+                      <WarningCircleIcon aria-hidden size={18} className="shrink-0" />
+                      The AI couldn't read this one. Try again, or fill it in by hand.
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center gap-3">
                       <button
                         type="button"

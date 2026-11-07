@@ -1,3 +1,12 @@
+import {
+  ArrowUpRightIcon,
+  ChartBarIcon,
+  KanbanIcon,
+  PlusIcon,
+  SignOutIcon,
+  WarningCircleIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import { useCallback, useEffect, useState } from "react";
 import { api, messageOf } from "./api";
 import { Board, groupByStage, type Columns, type Spot } from "./Board";
@@ -8,30 +17,33 @@ import { go, useRoute } from "./route";
 import { useToast } from "./Toast";
 import type { Card, Stage, Stats } from "./types";
 
-function NavLink({ active, href, children }: { active: boolean; href: string; children: React.ReactNode }) {
+type LinkProps = { active: boolean; href: string; icon: Icon; children: React.ReactNode };
+
+function NavLink({ active, href, icon: Glyph, children }: LinkProps) {
   return (
     <a
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-        active ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900" : "hover:bg-stone-100 dark:hover:bg-stone-800"
+      className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+        active
+          ? "bg-stone-100 text-stone-900 dark:bg-stone-800 dark:text-stone-50"
+          : "text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
       }`}
     >
+      <Glyph aria-hidden size={16} weight={active ? "bold" : "regular"} />
       {children}
     </a>
   );
 }
 
-function TabLink({ active, href, icon, children }: { active: boolean; href: string; icon: string; children: React.ReactNode }) {
+function TabLink({ active, href, icon: Glyph, children }: LinkProps) {
   return (
     <a
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-semibold ${active ? "text-accent" : "text-stone-500"}`}
+      className={`flex flex-1 flex-col items-center gap-1 py-2 text-xs font-semibold ${active ? "text-accent" : "text-stone-500"}`}
     >
-      <span aria-hidden className="text-xl leading-none">
-        {icon}
-      </span>
+      <Glyph aria-hidden size={22} weight={active ? "fill" : "regular"} />
       {children}
     </a>
   );
@@ -142,22 +154,23 @@ export default function App() {
           Foreman
         </a>
         <nav aria-label="Main" className="hidden gap-1 sm:flex">
-          <NavLink active={onBoard} href="#/board">
+          <NavLink active={onBoard} href="#/board" icon={KanbanIcon}>
             Board
           </NavLink>
-          <NavLink active={route.page === "add"} href="#/add">
+          <NavLink active={route.page === "add"} href="#/add" icon={PlusIcon}>
             Add a lead
           </NavLink>
-          <NavLink active={route.page === "usage"} href="#/usage">
+          <NavLink active={route.page === "usage"} href="#/usage" icon={ChartBarIcon}>
             AI usage
           </NavLink>
           <a
             href="/quote"
             target="_blank"
             rel="noopener"
-            className="rounded-md px-3 py-1.5 text-sm font-medium hover:bg-stone-100 dark:hover:bg-stone-800"
+            className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
           >
-            Customer chat ↗
+            Customer chat
+            <ArrowUpRightIcon aria-label="opens in a new tab" size={14} />
           </a>
         </nav>
         {stats && onBoard && (
@@ -178,8 +191,9 @@ export default function App() {
             await api.logout();
             window.location.href = "/login";
           }}
-          className="ml-auto rounded-md px-3 py-1.5 text-sm hover:bg-stone-100 dark:hover:bg-stone-800"
+          className="ml-auto flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-stone-600 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100"
         >
+          <SignOutIcon aria-hidden size={16} />
           Sign out
         </button>
       </header>
@@ -189,6 +203,7 @@ export default function App() {
           role="alert"
           className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-red-50 px-4 py-2 text-sm text-red-800 dark:bg-red-950 dark:text-red-200"
         >
+          <WarningCircleIcon aria-hidden size={18} className="shrink-0" />
           <span className="min-w-0 flex-1">{error}</span>
           <button
             type="button"
@@ -224,13 +239,13 @@ export default function App() {
         aria-label="Main"
         className="flex border-t border-stone-200 bg-white pb-[env(safe-area-inset-bottom)] sm:hidden dark:border-stone-800 dark:bg-stone-900"
       >
-        <TabLink active={onBoard} href="#/board" icon="▦">
+        <TabLink active={onBoard} href="#/board" icon={KanbanIcon}>
           Board
         </TabLink>
-        <TabLink active={route.page === "add"} href="#/add" icon="＋">
+        <TabLink active={route.page === "add"} href="#/add" icon={PlusIcon}>
           Add a lead
         </TabLink>
-        <TabLink active={route.page === "usage"} href="#/usage" icon="$">
+        <TabLink active={route.page === "usage"} href="#/usage" icon={ChartBarIcon}>
           AI usage
         </TabLink>
       </nav>
