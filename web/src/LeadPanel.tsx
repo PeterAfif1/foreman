@@ -301,7 +301,14 @@ export function LeadPanel({
                     </button>
                   </div>
                 )}
-                <FieldsForm value={fields} base={base} disabled={locked} onChange={setFields} />
+                <FieldsForm
+                  value={fields}
+                  base={base}
+                  disabled={locked}
+                  // A blank the AI left means "ask the customer", not "the AI forgot".
+                  blankHint={checked ? undefined : card.error ? "Fill in from the message" : "Not in the message"}
+                  onChange={setFields}
+                />
               </div>
 
               {saved.is_lead && (

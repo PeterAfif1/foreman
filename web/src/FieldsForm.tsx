@@ -2,7 +2,7 @@ import type { LeadFields, Urgency } from "./types";
 import { JOB_TYPES } from "./types";
 
 const input =
-  "w-full rounded-md border border-stone-300 bg-white px-2.5 py-2 text-sm disabled:bg-stone-100 disabled:text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:disabled:bg-stone-900/50 dark:disabled:text-stone-300";
+  "w-full rounded-md border border-stone-300 bg-white px-2.5 py-2 text-sm placeholder:text-stone-400 placeholder:italic dark:placeholder:text-stone-500 disabled:bg-stone-100 disabled:text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:disabled:bg-stone-900/50 dark:disabled:text-stone-300";
 const changedRing = "border-amber-500 ring-1 ring-amber-500";
 const label = "mb-1 block text-xs font-semibold text-stone-500 uppercase";
 
@@ -26,12 +26,15 @@ export function FieldsForm({
   value: f,
   base,
   disabled,
+  blankHint,
   onChange,
 }: {
   value: LeadFields;
   /** What changes are compared against: outlined fields differ from this. */
   base: LeadFields;
   disabled: boolean;
+  /** Placeholder for empty fields, e.g. "Not in the message" while checking the AI. */
+  blankHint?: string;
   onChange: (f: LeadFields) => void;
 }) {
   const set = <K extends keyof LeadFields>(k: K, v: LeadFields[K]) => onChange({ ...f, [k]: v });
@@ -41,12 +44,14 @@ export function FieldsForm({
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       set(k, e.target.value.trim() === "" ? null : e.target.value),
     disabled,
+    placeholder: blankHint,
   });
   const money = (k: "budget_min" | "budget_max") => ({
     value: f[k] ?? "",
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
       set(k, e.target.value === "" ? null : Math.round(Number(e.target.value))),
     disabled,
+    placeholder: blankHint,
   });
 
   return (
