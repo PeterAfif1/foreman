@@ -182,6 +182,25 @@ export function LeadPanel({
     hidden: current !== id,
   });
 
+  const replied = events.some((e) => e.kind === "reply_sent");
+  const step = nextStep();
+
+  /** What this card needs next, and the button that does it. */
+  function nextStep(): { hint: string; action?: { label: string; busyLabel?: string; run: () => void } } {
+    if (editing) return { hint: "Editing a checked card.", action: { label: "Save changes", busyLabel: "Saving...", run: saveEdit } };
+    if (!checked)
+      return {
+        hint: card.error ? "Fill in the details from the message, or try the AI again." : "Check the details against the message.",
+        // With nothing from the AI to confirm, the person is saving their own work.
+        action: { label: card.error ? "Save card" : "Looks right", busyLabel: "Saving...", run: approve },
+      };
+    if (saved.is_lead && !replied)
+      return current === "reply"
+        ? { hint: "Draft a reply, send it from your phone or email, then mark it as sent." }
+        : { hint: "Next: reply to the customer.", action: { label: "Write a reply", run: () => setTab("reply") } };
+    return { hint: saved.is_lead ? "Replied. Move the card along as the job progresses." : "Marked as not a lead." };
+  }
+
   const title = saved.customer_name ?? (saved.name_hint ? `Maybe ${saved.name_hint}` : "No name yet");
 
   return (
@@ -283,32 +302,6 @@ export function LeadPanel({
                   </div>
                 )}
                 <FieldsForm value={fields} base={base} disabled={locked} onChange={setFields} />
-
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  {!checked && (
-                    <button type="button" disabled={busy} onClick={approve} className={primary}>
-                      {busy ? "Saving..." : "Looks right"}
-                    </button>
-                  )}
-                  {editing && (
-                    <>
-                      <button type="button" disabled={busy} onClick={saveEdit} className={primary}>
-                        {busy ? "Saving..." : "Save changes"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFields(saved);
-                          setEditing(false);
-                        }}
-                        className="rounded-md px-3 py-2 text-sm hover:bg-stone-200 dark:hover:bg-stone-800"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                </div>
-                {error && <p className="mt-2 text-sm text-red-600">Couldn't save: {error}</p>}
               </div>
 
               {saved.is_lead && (
@@ -361,6 +354,36 @@ export function LeadPanel({
             </div>
           </div>
         </div>
+
+        {/* The next step for this card, always in reach however far down you are. */}
+        <footer className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-stone-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5 dark:border-stone-800 dark:bg-stone-900">
+          {error ? (
+            <p role="alert" className="min-w-0 flex-1 text-sm text-red-600 dark:text-red-400">
+              Couldn't save: {error}
+            </p>
+          ) : (
+            <p className="min-w-0 flex-1 text-sm text-stone-500">{step.hint}</p>
+          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {editing && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFields(saved);
+                  setEditing(false);
+                }}
+                className="rounded-md px-3 py-2 text-sm hover:bg-stone-100 dark:hover:bg-stone-800"
+              >
+                Cancel
+              </button>
+            )}
+            {step.action && (
+              <button type="button" disabled={busy} onClick={step.action.run} className={primary}>
+                {busy && step.action.busyLabel ? step.action.busyLabel : step.action.label}
+              </button>
+            )}
+          </div>
+        </footer>
       </aside>
     </div>
   );
