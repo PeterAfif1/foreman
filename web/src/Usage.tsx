@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, messageOf } from "./api";
-import type { Usage as UsageData, UsageStats } from "./types";
+import type { Stats, Usage as UsageData, UsageStats } from "./types";
 
 const FEATURE_NAMES: Record<string, string> = {
   extract: "Reading leads",
@@ -127,11 +127,16 @@ function FeatureRow({ name, s }: { name: string; s: UsageStats }) {
 export function Usage() {
   const [days, setDays] = useState(7);
   const [data, setData] = useState<UsageData | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.usage(days).then(setData).catch((e) => setError(messageOf(e)));
   }, [days]);
+  // Accuracy isn't tied to the time range, and the page works without it.
+  useEffect(() => {
+    api.stats().then(setStats).catch(() => {});
+  }, []);
 
   if (error) return <p className="p-6 text-red-600">{error}</p>;
   if (!data) return <p className="p-6 text-stone-500">Loading...</p>;
@@ -167,6 +172,15 @@ export function Usage() {
         <Tile label="AI calls" value={String(t.calls)} note={t.errors ? `${t.errors} failed (${pct(t.error_rate)})` : "none failed"} />
         <Tile label="Slowest 5% take" value={seconds(t.p95_ms)} note={`typical: ${seconds(t.p50_ms)}`} />
       </div>
+      {stats && stats.approved_without_edits_rate !== null && (
+        <p className="mt-4 text-sm text-stone-600 dark:text-stone-400">
+          When people checked the AI's cards, it had every field right on{" "}
+          <span className="font-mono font-semibold text-stone-900 dark:text-stone-100">
+            {pct(stats.approved_without_edits_rate)}
+          </span>{" "}
+          of them ({stats.approved} checked so far).
+        </p>
+      )}
 
       <h2 className="mt-8 mb-3 text-base font-semibold text-stone-900 dark:text-stone-100">Cost per day</h2>
       <div className="rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">

@@ -14,8 +14,9 @@ import { AddLead } from "./AddLead";
 import { Usage } from "./Usage";
 import { LeadPanel } from "./LeadPanel";
 import { go, useRoute } from "./route";
+import { nextStep } from "./nextStep";
 import { useToast } from "./Toast";
-import type { Card, Stage, Stats } from "./types";
+import type { Card, Stage } from "./types";
 
 type LinkProps = { active: boolean; href: string; icon: Icon; children: React.ReactNode };
 
@@ -52,7 +53,6 @@ function TabLink({ active, href, icon: Glyph, children }: LinkProps) {
 export default function App() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [columns, setColumns] = useState<Columns>({});
-  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const route = useRoute();
   const openId = route.page === "board" ? route.card : null;
@@ -61,10 +61,9 @@ export default function App() {
 
   const reload = useCallback(async () => {
     try {
-      const [s, cards, st] = await Promise.all([api.stages(), api.leads(), api.stats()]);
+      const [s, cards] = await Promise.all([api.stages(), api.leads()]);
       setStages(s);
       setColumns(groupByStage(s, cards));
-      setStats(st);
       setError(null);
     } catch (e) {
       setError(messageOf(e));
@@ -136,17 +135,16 @@ export default function App() {
   // Contacted), so redraw the board if it's no longer in the column shown.
   async function onChanged(card: Card) {
     const shownIn = Object.keys(columns).find((k) => columns[k].some((c) => c.id === card.id));
-    if (shownIn === card.stage) {
-      replaceCard(card);
-      setStats(await api.stats());
-    } else {
-      await reload();
-    }
+    if (shownIn === card.stage) replaceCard(card);
+    else await reload();
   }
 
   const allCards = Object.values(columns).flat();
   const open = allCards.find((c) => c.id === openId) ?? null;
-  const toCheck = allCards.filter((c) => c.status === "pending").length;
+  const closed = (key: string) => stages.find((s) => s.key === key)?.closed ?? false;
+  // Same rule as the card badges and the "Needs me" filter.
+  const needYou = allCards.filter((c) => nextStep(c, closed(c.stage))).length;
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
   const onBoard = route.page === "board";
 
@@ -176,16 +174,15 @@ export default function App() {
             <ArrowUpRightIcon aria-label="opens in a new tab" size={14} />
           </a>
         </nav>
-        {stats && onBoard && (
+        {onBoard && !loading && (
           <span className="hidden text-sm text-stone-500 lg:inline">
-            {stats.total} jobs · {toCheck} to check
-            {stats.approved_without_edits_rate !== null &&
-              ` · AI right on ${Math.round(stats.approved_without_edits_rate * 100)}% of checked cards`}
+            {plural(allCards.length, "job", "jobs")}
+            {needYou > 0 && ` · ${plural(needYou, "needs", "need")} you`}
           </span>
         )}
-        {onBoard && toCheck > 0 && (
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 lg:hidden dark:bg-amber-900 dark:text-amber-100">
-            {toCheck} to check
+        {onBoard && needYou > 0 && (
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 lg:hidden dark:bg-amber-950 dark:text-amber-200">
+            {plural(needYou, "needs", "need")} you
           </span>
         )}
         <button
