@@ -33,7 +33,7 @@ export function Column({
       <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <ul ref={setNodeRef} className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-3">
           {cards.map((card) => (
-            <SortableCard key={card.id} card={card} onOpen={onOpen} />
+            <SortableCard key={card.id} card={card} closed={stage.closed} onOpen={onOpen} />
           ))}
         </ul>
       </SortableContext>

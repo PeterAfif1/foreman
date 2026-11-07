@@ -125,7 +125,11 @@ export function Board({
           <Column key={s.key} stage={s} cards={columns[s.key] ?? []} onOpen={onOpen} />
         ))}
       </div>
-      <DragOverlay>{active ? <CardFace card={active} lifted /> : null}</DragOverlay>
+      <DragOverlay>
+        {active ? (
+          <CardFace card={active} closed={stages.find((s) => s.key === active.stage)?.closed ?? false} lifted />
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
