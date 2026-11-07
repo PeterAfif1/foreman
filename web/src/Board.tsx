@@ -13,10 +13,10 @@ import {
   type UniqueIdentifier,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BoardFilters, isFiltering, matches, NO_FILTER, type Filter } from "./BoardFilters";
 import { CardFace } from "./CardView";
-import { Column } from "./Column";
+import { Column, ColumnSkeleton } from "./Column";
 import { nextStep } from "./nextStep";
 import type { Card, Stage } from "./types";
 
@@ -30,14 +30,47 @@ export function groupByStage(stages: Stage[], cards: Card[]): Columns {
   return cols;
 }
 
+/** Which sides of a scrolling row have more to see, so the edges can fade out. */
+function useScrollEdges(deps: unknown[]) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ left: false, right: false });
+  const update = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const left = el.scrollLeft > 1;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setEdges((e) => (e.left === left && e.right === right ? e : { left, right }));
+  }, []);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    update();
+    const resize = new ResizeObserver(update);
+    resize.observe(el);
+    return () => resize.disconnect();
+    // Re-measure whenever what's in the row changes (`deps`), not only on resize.
+  }, [update, ...deps]);
+  return { ref, edges, onScroll: update };
+}
+
+const FADE = {
+  none: "",
+  right: "[mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)]",
+  left: "[mask-image:linear-gradient(to_left,black_calc(100%-3rem),transparent)]",
+  both: "[mask-image:linear-gradient(to_right,transparent,black_3rem,black_calc(100%-3rem),transparent)]",
+};
+
 export function Board({
   stages,
   columns,
+  loading,
   setColumns,
   onMove,
   onOpen,
 }: {
   stages: Stage[];
+  /** True until the first load finishes: shows placeholder columns. */
+  loading: boolean;
   columns: Columns;
   setColumns: (update: (cols: Columns) => Columns) => void;
   onMove: (id: number, stage: string, index: number, from: Spot | null) => Promise<void>;
@@ -53,6 +86,20 @@ export function Board({
   const all = stages.flatMap((s) => (columns[s.key] ?? []).map((c) => ({ c, closed: s.closed })));
   const needsMeCount = all.filter(({ c, closed }) => nextStep(c, closed)).length;
   const shownCount = stages.reduce((n, s) => n + shownIn(s.key).length, 0);
+
+  // Done and Lost start folded: they fill up over time and rarely need a look.
+  // A filter that finds cards in one unfolds it so the matches aren't hidden.
+  const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
+  const toggle = (key: string) =>
+    setUnfolded((open) => {
+      const next = new Set(open);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  const folded = (s: Stage) => s.closed && !unfolded.has(s.key) && !(filtering && shownIn(s.key).length > 0);
+
+  const row = useScrollEdges([stages, columns, unfolded, filter, loading]);
+  const fade = row.edges.left && row.edges.right ? "both" : row.edges.right ? "right" : row.edges.left ? "left" : "none";
   const origin = useRef<Spot | null>(null);
   // The board before the drag, to put back if the drag is cancelled (Escape).
   const snapshot = useRef<Columns | null>(null);
@@ -139,10 +186,24 @@ export function Board({
           shown={shownCount}
           total={all.length}
         />
-        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3 sm:p-4">
-          {stages.map((s) => (
-            <Column key={s.key} stage={s} cards={shownIn(s.key)} dragDisabled={filtering} onOpen={onOpen} />
-          ))}
+        <div
+          ref={row.ref}
+          onScroll={row.onScroll}
+          className={`flex min-h-0 flex-1 gap-3 overflow-x-auto p-3 sm:p-4 ${FADE[fade]}`}
+        >
+          {loading
+            ? [3, 2, 1, 1].map((n, i) => <ColumnSkeleton key={i} cards={n} />)
+            : stages.map((s) => (
+                <Column
+                  key={s.key}
+                  stage={s}
+                  cards={shownIn(s.key)}
+                  dragDisabled={filtering}
+                  collapsed={folded(s)}
+                  onToggle={s.closed ? () => toggle(s.key) : undefined}
+                  onOpen={onOpen}
+                />
+              ))}
         </div>
       </div>
       <DragOverlay>

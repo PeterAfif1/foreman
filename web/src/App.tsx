@@ -53,6 +53,7 @@ export default function App() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [columns, setColumns] = useState<Columns>({});
   const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
   const route = useRoute();
   const openId = route.page === "board" ? route.card : null;
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,8 @@ export default function App() {
       setError(null);
     } catch (e) {
       setError(messageOf(e));
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -223,6 +226,7 @@ export default function App() {
           <Board
             stages={stages}
             columns={columns}
+            loading={loading}
             setColumns={setColumns}
             onMove={onMove}
             onOpen={(c) => go({ page: "board", card: c.id })}
