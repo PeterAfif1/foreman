@@ -16,6 +16,9 @@ export default defineConfig({
       "/logout": backend,
       "/docs": backend,
       "/openapi.json": backend,
+      // Customer chat page and its API.
+      "/quote": backend,
+      "/public": backend,
     },
   },
 });
