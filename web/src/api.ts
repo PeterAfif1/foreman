@@ -81,6 +81,8 @@ export const api = {
     post<Card>("/api/leads", { text, received_at: receivedAt, source }),
   move: (id: number, stage: string, index: number) =>
     post<Card>(`/api/leads/${id}/move`, { stage, index }),
+  /** Have the AI read an unchecked card again, e.g. after its model call failed. */
+  reextract: (id: number) => post<Card>(`/api/leads/${id}/extract`, {}),
   approve: (id: number, fields: LeadFields) => post<Card>(`/api/leads/${id}/approve`, fields),
   update: (id: number, fields: LeadFields) =>
     call<Card>(`/api/leads/${id}/fields`, { method: "PUT", body: JSON.stringify(fields) }),

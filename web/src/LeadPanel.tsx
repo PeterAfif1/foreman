@@ -82,6 +82,12 @@ export function LeadPanel({
   const saveEdit = async () => {
     if (await run(() => api.update(card.id, cleanFields(fields)), "Changes saved")) setEditing(false);
   };
+  const readAgain = () =>
+    run(async () => {
+      const updated = await api.reextract(card.id);
+      toast(updated.error ? "The AI still couldn't read it" : "The AI filled in the card. Check it below.");
+      return updated;
+    });
   const addNote = async () => {
     if (!note.trim()) return;
     if (await run(async () => void (await api.note(card.id, note.trim())), "Note added")) setNote("");
@@ -124,9 +130,24 @@ export function LeadPanel({
         </div>
 
         {card.error && !checked && (
-          <p className="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
-            The AI couldn't read this one. Fill it in by hand.
-          </p>
+          <div className="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
+            <p>The AI couldn't read this one. Try again, or fill it in by hand.</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={readAgain}
+                className="rounded-md bg-red-800 px-3 py-1.5 font-semibold text-white hover:bg-red-900 active:scale-[0.98] disabled:opacity-60 dark:bg-red-200 dark:text-red-950 dark:hover:bg-red-100"
+              >
+                {busy ? "Reading..." : "Try the AI again"}
+              </button>
+              {/* The technical reason, for whoever runs the server. */}
+              <details className="min-w-0 text-xs">
+                <summary className="cursor-pointer">What went wrong</summary>
+                <code className="mt-1 block break-words">{card.error}</code>
+              </details>
+            </div>
+          </div>
         )}
 
         <h3 className={heading}>Message</h3>

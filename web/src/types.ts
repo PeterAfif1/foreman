@@ -69,6 +69,7 @@ export interface Stage {
 
 export type CardEvent =
   | { at: string; kind: "created"; detail: Record<string, never> }
+  | { at: string; kind: "reextracted"; detail: { ok: boolean } }
   | { at: string; kind: "approved"; detail: { edited_fields: string[] } }
   | { at: string; kind: "moved"; detail: { from: string; to: string } }
   | { at: string; kind: "note"; detail: { text: string } }

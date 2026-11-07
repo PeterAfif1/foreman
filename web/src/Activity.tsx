@@ -14,6 +14,8 @@ function describe(e: CardEvent, stageName: (key: string) => string): string {
   switch (e.kind) {
     case "created":
       return "Card created from the message";
+    case "reextracted":
+      return e.detail.ok ? "AI read the message again" : "AI tried to read the message again and failed";
     case "approved":
       return e.detail.edited_fields.length
         ? `Checked the AI's version, fixed ${fields(e.detail.edited_fields)}`
