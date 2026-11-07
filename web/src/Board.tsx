@@ -19,6 +19,8 @@ import { Column } from "./Column";
 import type { Card, Stage } from "./types";
 
 export type Columns = Record<string, Card[]>;
+/** Where a card sits: its column and its place in it (0 = top). */
+export type Spot = { stage: string; index: number };
 
 export function groupByStage(stages: Stage[], cards: Card[]): Columns {
   const cols: Columns = Object.fromEntries(stages.map((s) => [s.key, []]));
@@ -36,11 +38,11 @@ export function Board({
   stages: Stage[];
   columns: Columns;
   setColumns: (update: (cols: Columns) => Columns) => void;
-  onMove: (id: number, stage: string, index: number) => Promise<void>;
+  onMove: (id: number, stage: string, index: number, from: Spot | null) => Promise<void>;
   onOpen: (c: Card) => void;
 }) {
   const [active, setActive] = useState<Card | null>(null);
-  const origin = useRef<{ stage: string; index: number } | null>(null);
+  const origin = useRef<Spot | null>(null);
   // The board before the drag, to put back if the drag is cancelled (Escape).
   const snapshot = useRef<Columns | null>(null);
 
@@ -100,7 +102,7 @@ export function Board({
     const index = cards.findIndex((c) => c.id === active.id);
     const start = origin.current;
     if (start && start.stage === stage && start.index === index) return;
-    onMove(active.id as number, stage, index);
+    onMove(active.id as number, stage, index, start);
   }
 
   return (

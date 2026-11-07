@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, messageOf } from "./api";
-import { Board, groupByStage, type Columns } from "./Board";
+import { Board, groupByStage, type Columns, type Spot } from "./Board";
 import { AddLead } from "./AddLead";
 import { Usage } from "./Usage";
 import { LeadPanel } from "./LeadPanel";
 import { go, useRoute } from "./route";
+import { useToast } from "./Toast";
 import type { Card, Stage, Stats } from "./types";
 
 function NavLink({ active, href, children }: { active: boolean; href: string; children: React.ReactNode }) {
@@ -43,6 +44,7 @@ export default function App() {
   const route = useRoute();
   const openId = route.page === "board" ? route.card : null;
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const reload = useCallback(async () => {
     try {
@@ -67,18 +69,46 @@ export default function App() {
       return next;
     });
 
-  async function onMove(id: number, stage: string, index: number) {
+  const positionOf = (id: number): Spot | null => {
+    for (const [stage, list] of Object.entries(columns)) {
+      const index = list.findIndex((c) => c.id === id);
+      if (index >= 0) return { stage, index };
+    }
+    return null;
+  };
+  const stageName = (key: string) => stages.find((s) => s.key === key)?.name ?? key;
+
+  /** Save a move. `from` is where the card started; a drag knows it, a menu
+   * move happens before the board changes, so it's read from the board. */
+  async function onMove(id: number, stage: string, index: number, from = positionOf(id)) {
     try {
       const card = await api.move(id, stage, index);
       // Dragging already put the card in place. A move from the card's own menu
       // didn't, so reload the board to show it in its new column.
-      const shownIn = Object.keys(columns).find((k) => columns[k].some((c) => c.id === id));
+      const shownIn = positionOf(id)?.stage;
       if (shownIn === card.stage) replaceCard(card);
       else await reload();
+      // Reordering within a column isn't worth a message; changing column is.
+      if (from && from.stage !== stage) {
+        toast(`Moved to ${stageName(stage)}`, {
+          label: "Undo",
+          run: () => undoMove(id, from),
+        });
+      }
     } catch (e) {
       // The server is the source of truth: if the move didn't save, show what did.
       setError(`Couldn't move that card: ${messageOf(e)}`);
       reload();
+    }
+  }
+
+  async function undoMove(id: number, to: Spot) {
+    try {
+      await api.move(id, to.stage, to.index);
+      await reload();
+      toast(`Moved back to ${stageName(to.stage)}`);
+    } catch (e) {
+      setError(`Couldn't undo the move: ${messageOf(e)}`);
     }
   }
 

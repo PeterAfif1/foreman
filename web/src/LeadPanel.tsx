@@ -4,6 +4,7 @@ import { api, messageOf } from "./api";
 import { cleanFields, FieldsForm } from "./FieldsForm";
 import { EstimateBox } from "./EstimateBox";
 import { ReplyBox } from "./ReplyBox";
+import { useToast } from "./Toast";
 import type { Card, CardEvent, LeadFields, Stage } from "./types";
 import { EMPTY_FIELDS, sourceLabel } from "./types";
 
@@ -41,6 +42,7 @@ export function LeadPanel({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const loadEvents = useCallback(() => api.events(card.id).then(setEvents).catch(() => {}), [card.id]);
 
@@ -58,13 +60,15 @@ export function LeadPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  async function run(action: () => Promise<Card | void>) {
+  /** Run a change, then confirm it with `done` (if given) once it has saved. */
+  async function run(action: () => Promise<Card | void>, done?: string) {
     setBusy(true);
     setError(null);
     try {
       const updated = await action();
       if (updated) onChanged(updated);
       await loadEvents();
+      if (done) toast(done);
       return true;
     } catch (e) {
       setError(messageOf(e));
@@ -74,13 +78,13 @@ export function LeadPanel({
     }
   }
 
-  const approve = () => run(() => api.approve(card.id, cleanFields(fields)));
+  const approve = () => run(() => api.approve(card.id, cleanFields(fields)), "Card checked");
   const saveEdit = async () => {
-    if (await run(() => api.update(card.id, cleanFields(fields)))) setEditing(false);
+    if (await run(() => api.update(card.id, cleanFields(fields)), "Changes saved")) setEditing(false);
   };
   const addNote = async () => {
     if (!note.trim()) return;
-    if (await run(async () => void (await api.note(card.id, note.trim())))) setNote("");
+    if (await run(async () => void (await api.note(card.id, note.trim())), "Note added")) setNote("");
   };
 
   // Before checking: outline differences from the AI. While editing: from the saved card.
@@ -195,6 +199,7 @@ export function LeadPanel({
               onSent={async (updated) => {
                 onChanged(updated);
                 await loadEvents();
+                toast("Marked as sent");
               }}
             />
           </>
