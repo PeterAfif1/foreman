@@ -97,7 +97,10 @@ export default function App() {
       }
     } catch (e) {
       // The server is the source of truth: if the move didn't save, show what did.
-      setError(`Couldn't move that card: ${messageOf(e)}`);
+      // A toast too, because the banner is hidden behind an open card on phones.
+      const message = `Couldn't move that card: ${messageOf(e)}`;
+      setError(message);
+      toast(message);
       reload();
     }
   }
@@ -108,7 +111,9 @@ export default function App() {
       await reload();
       toast(`Moved back to ${stageName(to.stage)}`);
     } catch (e) {
-      setError(`Couldn't undo the move: ${messageOf(e)}`);
+      const message = `Couldn't undo the move: ${messageOf(e)}`;
+      setError(message);
+      toast(message);
     }
   }
 
