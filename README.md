@@ -73,7 +73,7 @@ $env:FOREMAN_DB="data/demo.db"; uv run uvicorn foreman.api:create_app --factory 
 ## Test it
 
 ```bash
-uv run pytest                                      # 204 tests, free, no API calls
+uv run pytest                                      # 209 tests, free, no API calls
 uv run python -m eval.run_eval --label test        # extractor eval (uses OpenAI)
 uv run python -m eval.run_chat_eval --label test   # chat agent eval
 uv run python -m eval.run_reply_eval --label test  # reply eval
