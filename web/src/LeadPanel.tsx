@@ -9,7 +9,7 @@ import { useToast } from "./Toast";
 import type { Card, CardEvent, LeadFields, Stage } from "./types";
 import { EMPTY_FIELDS, sourceLabel } from "./types";
 
-const heading = "mb-2 text-xs font-semibold tracking-wide text-stone-500 uppercase";
+const heading = "mb-2 block text-sm font-medium text-stone-700 dark:text-stone-300";
 const primary =
   "rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong active:scale-[0.98] disabled:opacity-60";
 

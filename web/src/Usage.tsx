@@ -168,12 +168,12 @@ export function Usage() {
         <Tile label="Slowest 5% take" value={seconds(t.p95_ms)} note={`typical: ${seconds(t.p50_ms)}`} />
       </div>
 
-      <h2 className="mt-8 mb-2 text-sm font-semibold text-stone-500 uppercase">Cost per day</h2>
+      <h2 className="mt-8 mb-3 text-base font-semibold text-stone-900 dark:text-stone-100">Cost per day</h2>
       <div className="rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
         <CostChart days={data.cost_by_day} />
       </div>
 
-      <h2 className="mt-8 mb-2 text-sm font-semibold text-stone-500 uppercase">By feature</h2>
+      <h2 className="mt-8 mb-3 text-base font-semibold text-stone-900 dark:text-stone-100">By feature</h2>
       <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
         {Object.keys(data.by_feature).length === 0 ? (
           <p className="text-sm text-stone-500">No AI calls in this period.</p>
@@ -204,7 +204,7 @@ export function Usage() {
         )}
       </div>
 
-      <h2 className="mt-8 mb-2 text-sm font-semibold text-stone-500 uppercase">Recent failures</h2>
+      <h2 className="mt-8 mb-3 text-base font-semibold text-stone-900 dark:text-stone-100">Recent failures</h2>
       <div className="rounded-xl border border-stone-200 bg-white p-4 text-sm dark:border-stone-800 dark:bg-stone-900">
         {data.recent_errors.length === 0 ? (
           <p className="text-stone-500">None. Every AI call worked.</p>

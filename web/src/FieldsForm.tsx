@@ -1,10 +1,19 @@
+import { CheckIcon } from "@phosphor-icons/react";
 import type { LeadFields, Urgency } from "./types";
 import { JOB_TYPES } from "./types";
 
 const input =
-  "w-full rounded-md border border-stone-300 bg-white px-2.5 py-2 text-sm placeholder:text-stone-400 placeholder:italic dark:placeholder:text-stone-500 disabled:bg-stone-100 disabled:text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:disabled:bg-stone-900/50 dark:disabled:text-stone-300";
+  "w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm transition-colors focus:border-accent focus:ring-1 focus:ring-accent focus:outline-none placeholder:font-sans placeholder:text-stone-400 placeholder:italic dark:placeholder:text-stone-500 disabled:bg-stone-100 disabled:text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:disabled:bg-stone-900/50 dark:disabled:text-stone-300";
 const changedRing = "border-amber-500 ring-1 ring-amber-500";
-const label = "mb-1 block text-xs font-semibold text-stone-500 uppercase";
+const label = "mb-1.5 block text-sm font-medium text-stone-700 dark:text-stone-300";
+const help = "mt-1 block text-xs text-stone-500";
+
+/** 30000 -> "30,000". Anything typed that isn't a digit is dropped, so "$30,000" reads as 30000. */
+const showMoney = (n: number | null) => (n === null ? "" : n.toLocaleString("en-US"));
+const readMoney = (s: string) => {
+  const digits = s.replace(/\D/g, "");
+  return digits ? Number(digits) : null;
+};
 
 function norm(k: keyof LeadFields, v: LeadFields[keyof LeadFields]) {
   return JSON.stringify(k === "job_types" ? [...(v as string[])].sort() : v);
@@ -46,10 +55,12 @@ export function FieldsForm({
     disabled,
     placeholder: blankHint,
   });
+  // Text, not type="number": number inputs can't show "30,000" and change value on scroll.
   const money = (k: "budget_min" | "budget_max") => ({
-    value: f[k] ?? "",
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-      set(k, e.target.value === "" ? null : Math.round(Number(e.target.value))),
+    type: "text",
+    inputMode: "numeric" as const,
+    value: showMoney(f[k]),
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(k, readMoney(e.target.value)),
     disabled,
     placeholder: blankHint,
   });
@@ -64,10 +75,11 @@ export function FieldsForm({
               key={String(v)}
               type="button"
               onClick={() => set("is_lead", v)}
-              className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+              aria-pressed={f.is_lead === v}
+              className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors active:scale-[0.98] ${
                 f.is_lead === v
-                  ? "border-stone-900 bg-stone-900 text-white dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
-                  : "border-stone-300 dark:border-stone-700"
+                  ? "border-accent bg-accent/10 text-accent-strong dark:text-orange-300"
+                  : "border-stone-300 text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
               }`}
             >
               {v ? "Yes, a customer" : "No, spam or wrong number"}
@@ -80,7 +92,7 @@ export function FieldsForm({
         <span className={label}>Name</span>
         <input className={`${input} ${ring("customer_name")}`} {...text("customer_name")} />
         {f.name_hint && !disabled && f.customer_name !== f.name_hint && (
-          <span className="mt-1 block text-xs text-stone-500">
+          <span className={help}>
             Maybe {f.name_hint} (from their email){" "}
             <button type="button" className="underline" onClick={() => set("customer_name", f.name_hint)}>
               Use
@@ -90,27 +102,31 @@ export function FieldsForm({
       </label>
       <label className="block">
         <span className={label}>Phone or email</span>
-        <input className={`${input} ${ring("contact")}`} {...text("contact")} />
+        <input className={`${input} font-mono ${ring("contact")}`} {...text("contact")} />
       </label>
 
       <fieldset className={`rounded-md sm:col-span-2 ${ring("job_types")}`} disabled={disabled}>
         <legend className={label}>Job</legend>
         <div className="flex flex-wrap gap-1.5">
-          {JOB_TYPES.map((j) => (
-            <label
-              key={j}
-              className="flex cursor-pointer items-center gap-1.5 rounded-full bg-stone-200 px-3 py-1 text-sm dark:bg-stone-800"
-            >
-              <input
-                type="checkbox"
-                checked={f.job_types.includes(j)}
-                onChange={(e) =>
-                  set("job_types", e.target.checked ? [...f.job_types, j] : f.job_types.filter((x) => x !== j))
-                }
-              />
-              {j}
-            </label>
-          ))}
+          {JOB_TYPES.map((j) => {
+            const on = f.job_types.includes(j);
+            return (
+              <button
+                key={j}
+                type="button"
+                aria-pressed={on}
+                onClick={() => set("job_types", on ? f.job_types.filter((x) => x !== j) : [...f.job_types, j])}
+                className={`flex items-center gap-1 rounded-full border px-3 py-1 text-sm capitalize transition-colors active:scale-[0.98] disabled:cursor-default ${
+                  on
+                    ? "border-accent bg-accent/10 font-medium text-accent-strong dark:text-orange-300"
+                    : "border-stone-300 text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
+                }`}
+              >
+                {on && <CheckIcon aria-hidden size={14} weight="bold" />}
+                {j}
+              </button>
+            );
+          })}
         </div>
       </fieldset>
 
@@ -133,18 +149,28 @@ export function FieldsForm({
         </select>
       </label>
       <label className="block">
-        <span className={label}>Budget from ($)</span>
-        <input type="number" min={0} step={100} className={`${input} ${ring("budget_min")}`} {...money("budget_min")} />
+        <span className={label}>Budget from</span>
+        <span className="relative block">
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-stone-400">
+            $
+          </span>
+          <input className={`${input} pl-6 font-mono ${ring("budget_min")}`} {...money("budget_min")} />
+        </span>
       </label>
       <label className="block">
-        <span className={label}>Budget up to ($)</span>
-        <input type="number" min={0} step={100} className={`${input} ${ring("budget_max")}`} {...money("budget_max")} />
+        <span className={label}>Budget up to</span>
+        <span className="relative block">
+          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-stone-400">
+            $
+          </span>
+          <input className={`${input} pl-6 font-mono ${ring("budget_max")}`} {...money("budget_max")} />
+        </span>
       </label>
       <label className="block">
         <span className={label}>Deadline</span>
         <input
           type="date"
-          className={`${input} ${ring("deadline")}`}
+          className={`${input} font-mono ${ring("deadline")}`}
           value={f.deadline ?? ""}
           disabled={disabled}
           onChange={(e) => set("deadline", e.target.value || null)}
@@ -156,7 +182,7 @@ export function FieldsForm({
         <textarea rows={2} className={`${input} ${ring("scope_summary")}`} {...text("scope_summary")} />
       </label>
       <label className="block sm:col-span-2">
-        <span className={label}>Ask the customer (one per line)</span>
+        <span className={label}>Questions for the customer</span>
         <textarea
           rows={3}
           className={`${input} ${ring("missing_info")}`}
@@ -164,6 +190,7 @@ export function FieldsForm({
           disabled={disabled}
           onChange={(e) => set("missing_info", e.target.value.split("\n"))}
         />
+        <span className={help}>One per line. The reply draft asks these.</span>
       </label>
     </div>
   );

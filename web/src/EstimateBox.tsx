@@ -53,13 +53,13 @@ export function EstimateBox({ card, onDone }: { card: Card; onDone: () => void }
 
       {result && result.status === "ok" && result.low !== null && result.high !== null && (
         <div className="rounded-lg border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-900">
-          <div className="text-xs font-semibold text-stone-500 uppercase">Rough range, not a quote</div>
+          <div className="text-sm font-medium text-stone-700 dark:text-stone-300">Rough range, not a quote</div>
           <div className="mt-1 text-2xl font-semibold tabular-nums">
             {result.low === result.high ? money(result.low) : `${money(result.low)} to ${money(result.high)}`}
           </div>
           <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{result.reason}</p>
 
-          <div className="mt-3 text-xs font-semibold text-stone-500 uppercase">
+          <div className="mt-3 text-sm font-medium text-stone-700 dark:text-stone-300">
             Based on {result.cited.length} past {result.cited.length === 1 ? "job" : "jobs"}
           </div>
           <ul className="mt-1 divide-y divide-stone-200 text-sm dark:divide-stone-800">
